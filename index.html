@@ -81,6 +81,12 @@
             overflow: hidden;
             cursor: pointer;
             transition: transform 0.2s, border-color 0.2s;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .place-card:hover {
@@ -88,18 +94,41 @@
             border-color: var(--accent);
         }
 
+        .place-img-container {
+            width: 100%;
+            height: 140px;
+            background: #0f172a;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Loading skeleton effect */
+        .place-img-container::before {
+            content: "Loading view...";
+            font-size: 10px;
+            color: var(--text-secondary);
+            position: absolute;
+        }
+
         .place-img {
             width: 100%;
-            height: 120px;
+            height: 100%;
             object-fit: cover;
-            background: #000;
+            display: block;
+            position: relative;
+            z-index: 1;
+            opacity: 0;
+            transition: opacity 0.5s ease-in;
         }
 
         .place-info {
             padding: 12px;
         }
 
-        .place-info h4 { font-size: 15px; margin-bottom: 5px; }
+        .place-info h4 { font-size: 15px; margin-bottom: 5px; color: #fff; }
         .place-info .tag {
             display: inline-block;
             background: rgba(59, 130, 246, 0.2);
@@ -125,7 +154,6 @@
             background: #000;
         }
 
-        /* Map controls styling */
         .map-layer-toggle {
             position: absolute;
             top: 20px;
@@ -137,6 +165,7 @@
             border-radius: 8px;
             display: flex;
             gap: 5px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
 
         .layer-btn {
@@ -148,6 +177,7 @@
             cursor: pointer;
             font-size: 12px;
             font-weight: 600;
+            transition: 0.2s;
         }
 
         .layer-btn.active {
@@ -225,10 +255,10 @@
 
         .insight-card {
             margin-top: 10px;
-            background: rgba(0,0,0,0.2);
-            border: 1px solid rgba(255,255,255,0.05);
-            border-radius: 10px;
-            padding: 10px;
+            background: rgba(0,0,0,0.25);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 12px;
             font-size: 13px;
         }
 
@@ -236,11 +266,11 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
-            margin-top: 8px;
+            margin-top: 10px;
         }
 
         .insight-item { font-size: 11px; }
-        .insight-label { color: var(--accent); font-weight: 600; text-transform: uppercase; margin-bottom: 2px; }
+        .insight-label { color: var(--accent); font-weight: 700; text-transform: uppercase; margin-bottom: 2px; font-size: 10px; }
 
         .chat-input-area {
             padding: 16px;
@@ -269,8 +299,7 @@
             font-weight: 600;
         }
 
-        /* Custom Popup Leaflet */
-        .leaflet-popup-content-wrapper { background: #111827; color: white; border: 1px solid #374151; }
+        .leaflet-popup-content-wrapper { background: #111827; color: white; border: 1px solid #374151; font-family: 'Inter', sans-serif; }
         .leaflet-popup-tip { background: #111827; }
 
     </style>
@@ -293,9 +322,7 @@
                 <span>Visited Journal</span>
                 <span id="counter" style="color:var(--accent)">0</span>
             </div>
-            <div class="place-list" id="place-list">
-                <!-- Cards appear here -->
-            </div>
+            <div class="place-list" id="place-list"></div>
         </aside>
 
         <main id="map-container">
@@ -321,12 +348,12 @@
                 <div class="chat-messages" id="chat-messages">
                     <div class="msg bot">
                         <div class="msg-content">
-                            Welcome back! I've upgraded my systems with <b>Satellite Imagery</b> and <b>Location Insights</b>. Where shall we travel today?
+                            Welcome! Ask me to show you any place on Earth. I'll give you <b>live satellite views</b> and <b>travel tips</b>!
                         </div>
                     </div>
                 </div>
                 <div class="chat-input-area">
-                    <input type="text" id="chat-input" placeholder="Type a destination..." onkeypress="handleKey(event)">
+                    <input type="text" id="chat-input" placeholder="e.g. 'Show me Bora Bora'..." onkeypress="handleKey(event)">
                     <button onclick="sendMessage()">Explore</button>
                 </div>
             </div>
@@ -336,21 +363,18 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         let map;
-        let markers = [];
         let layers = {};
         let visitedCount = 0;
 
         function initMap() {
             map = L.map('map', { zoomControl: false }).setView([20, 0], 2);
 
-            // Layer 1: Dark Vector
             layers.dark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
                 attribution: '&copy; OpenStreetMap'
             });
 
-            // Layer 2: Real Satellite (Esri World Imagery)
             layers.sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                attribution: 'Esri &mdash; Source: Esri'
             });
 
             layers.sat.addTo(map);
@@ -419,11 +443,10 @@
         }
 
         async function processRequest(text) {
-            const query = text.toLowerCase();
             const locationQuery = text.replace(/(find|take me to|show me|where is|go to)/gi, "").trim();
             
             if (locationQuery.length < 2) {
-                addMessage("Tell me a specific city or landmark name!", "bot");
+                addMessage("Which destination are we heading to?", "bot");
                 return;
             }
 
@@ -437,37 +460,51 @@
                     const lon = parseFloat(place.lon);
                     const name = place.display_name.split(',')[0];
 
-                    // Generate "AI" insights based on coordinates/name (simulated)
                     const insights = generateInsights(place);
 
-                    // Map Update
-                    map.flyTo([lat, lon], 14, { duration: 2 });
-                    const marker = L.marker([lat, lon]).addTo(map);
-                    marker.bindPopup(`<b>${name}</b><br>${insights.specialty}`).openPopup();
+                    map.flyTo([lat, lon], 14, { duration: 2.5 });
                     
-                    addMessage(`Traveling to ${name}...`, "bot", insights);
+                    setTimeout(() => {
+                        const marker = L.marker([lat, lon]).addTo(map);
+                        marker.bindPopup(`<b>${name}</b><br><span style="font-size:12px">${insights.specialty}</span>`).openPopup();
+                    }, 2000);
+                    
+                    addMessage(`Traveling to ${name}... Here is some info on your destination!`, "bot", insights);
                     addToSidebar(place, insights);
+                    
                     visitedCount++;
                     document.getElementById('counter').innerText = visitedCount;
-
                 } else {
-                    addMessage("I couldn't find that place. Is the spelling correct?", "bot");
+                    addMessage("I couldn't find that specific spot. Try another name?", "bot");
                 }
             } catch (e) {
-                addMessage("Connection error with the mapping satellite.", "bot");
+                addMessage("Map data is currently unreachable.", "bot");
             }
         }
 
         function generateInsights(place) {
-            // In a real app, this comes from an LLM. Here we simulate travel wisdom.
             const name = place.display_name.split(',')[0];
-            const type = place.type || "City";
+            const country = place.address.country || "Global Region";
             
+            const specialties = [
+                "Breathtaking local landscapes and natural beauty.",
+                "Iconic historical landmarks and rich architecture.",
+                "World-renowned local cuisine and vibrant food markets.",
+                "Authentic cultural traditions and lively local arts.",
+                "Pristine beaches and peaceful coastal retreats."
+            ];
+            
+            const times = [
+                "Spring (March - May)",
+                "Autumn (Sept - Nov)",
+                "Winter (Dec - Feb)",
+                "Summer (June - Aug)"
+            ];
+
             return {
-                summary: `A fascinating ${type} located in ${place.address.country || 'the world'}. It's known for its unique culture and geographical significance.`,
-                specialty: ["Authentic Cuisine", "Historical Architecture", "Natural Wonders", "Vibrant Arts Scene", "Hidden Local Gems"][Math.floor(Math.random() * 5)],
-                time: ["March to May", "September to November", "June to August", "Year-round"][Math.floor(Math.random() * 4)],
-                img: `https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=400&q=80` // Placeholder logic, but we can make it dynamic
+                summary: `${name} is a stunning location in ${country}, offering a unique blend of heritage and scenery.`,
+                specialty: specialties[Math.floor(Math.random() * specialties.length)],
+                time: times[Math.floor(Math.random() * times.length)]
             };
         }
 
@@ -476,23 +513,36 @@
             const name = place.display_name.split(',')[0];
             const country = place.address.country || "";
             
-            // Dynamic image search simulation using Unsplash (No Key needed for simple source)
-            const photoUrl = `https://source.unsplash.com/400x300/?${encodeURIComponent(name)},landscape`;
+            // NEW IMAGE STRATEGY: 
+            // 1. Using source.unsplash.com/featured which handles keywords natively
+            // 2. Added destination name AND country as keywords
+            // 3. Added a random seed to force a fresh pull even for the same place
+            const searchKeywords = encodeURIComponent(name + "," + country + ",travel,landscape");
+            const finalPhotoUrl = `https://source.unsplash.com/featured/400x300?${searchKeywords}&sig=${Math.floor(Math.random() * 10000)}`;
 
             const card = document.createElement('div');
             card.className = 'place-card';
+            
             card.innerHTML = `
-                <img src="${photoUrl}" class="place-img" onerror="this.src='https://via.placeholder.com/400x120?text=Destination'">
+                <div class="place-img-container">
+                    <img src="${finalPhotoUrl}" 
+                         class="place-img" 
+                         alt="${name}"
+                         onload="this.style.opacity=1"
+                         onerror="this.src='https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=400&q=80'">
+                </div>
                 <div class="place-info">
-                    <div class="tag">${insights.specialty}</div>
+                    <div class="tag">Destination</div>
                     <h4>${name}</h4>
                     <p>${country}</p>
-                    <div style="font-size:10px; margin-top:8px; color:var(--accent)">Visit: ${insights.time}</div>
+                    <div style="font-size:10px; margin-top:8px; color:var(--accent); font-weight:600">Best Visit: ${insights.time}</div>
                 </div>
             `;
+            
             card.onclick = () => {
                 map.flyTo([place.lat, place.lon], 15);
             };
+            
             list.prepend(card);
         }
     </script>
