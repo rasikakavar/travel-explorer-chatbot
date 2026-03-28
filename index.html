@@ -2,10 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Travel Explorer - Satellite & Insights</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+    <title>Travel Explorer Pro | Satellite · Routes · Pins</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
     <style>
         :root {
             --bg-dark: #050a0f;
@@ -15,6 +16,8 @@
             --text-primary: #f8fafc;
             --text-secondary: #94a3b8;
             --border: #1e293b;
+            --success: #10b981;
+            --warning: #f59e0b;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -45,72 +48,57 @@
             overflow: hidden;
         }
 
-        /* --- SIDEBAR --- */
+        /* --- SIDEBAR (enhanced) --- */
         .sidebar {
-            width: 320px;
+            width: 340px;
             background: var(--sidebar-bg);
             border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
             z-index: 10;
-        }
-
-        .sidebar-header {
-            padding: 20px;
-            font-weight: 600;
-            font-size: 13px;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .place-list {
-            flex: 1;
             overflow-y: auto;
-            padding: 0 15px 20px;
         }
 
-        .place-card {
+        .sidebar-section {
+            border-bottom: 1px solid var(--border);
+            padding: 16px 0;
+        }
+
+        .section-title {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            padding: 0 18px;
+            margin-bottom: 12px;
+        }
+
+        .place-list, .pins-list {
+            padding: 0 12px 12px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .place-card, .pin-card {
             background: #161f2b;
             border: 1px solid var(--border);
-            border-radius: 12px;
-            margin-bottom: 15px;
+            border-radius: 14px;
             overflow: hidden;
             cursor: pointer;
-            transition: transform 0.2s, border-color 0.2s;
-            animation: fadeIn 0.4s ease-out;
+            transition: all 0.2s ease;
+            animation: fadeIn 0.3s ease-out;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .place-card:hover {
-            transform: translateY(-2px);
-            border-color: var(--accent);
-        }
+        .place-card:hover, .pin-card:hover { transform: translateY(-2px); border-color: var(--accent); }
 
         .place-img-container {
             width: 100%;
-            height: 140px;
+            height: 130px;
             background: #0f172a;
-            overflow: hidden;
             position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* Loading skeleton effect */
-        .place-img-container::before {
-            content: "Loading view...";
-            font-size: 10px;
-            color: var(--text-secondary);
-            position: absolute;
+            overflow: hidden;
         }
 
         .place-img {
@@ -118,41 +106,98 @@
             height: 100%;
             object-fit: cover;
             display: block;
-            position: relative;
-            z-index: 1;
-            opacity: 0;
-            transition: opacity 0.5s ease-in;
+            transition: opacity 0.4s;
         }
 
         .place-info {
-            padding: 12px;
+            padding: 10px 12px;
         }
 
-        .place-info h4 { font-size: 15px; margin-bottom: 5px; color: #fff; }
+        .place-info h4 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
         .place-info .tag {
             display: inline-block;
             background: rgba(59, 130, 246, 0.2);
             color: var(--accent);
-            font-size: 10px;
+            font-size: 9px;
             padding: 2px 8px;
-            border-radius: 4px;
-            margin-bottom: 8px;
-            text-transform: uppercase;
+            border-radius: 12px;
+            margin-bottom: 6px;
+        }
+        .btn-pin {
+            background: rgba(245, 158, 11, 0.2);
+            border: none;
+            color: var(--warning);
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            cursor: pointer;
+            margin-top: 8px;
             font-weight: 600;
+            transition: 0.2s;
         }
-        .place-info p { font-size: 12px; color: var(--text-secondary); line-height: 1.4; }
+        .btn-pin:hover { background: var(--warning); color: #0f172a; }
 
-        /* --- MAP AREA --- */
-        #map-container {
+        .pin-card {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            gap: 10px;
+        }
+        .pin-icon { font-size: 20px; }
+        .pin-details { flex: 1; }
+        .pin-name { font-weight: 600; font-size: 13px; }
+        .remove-pin {
+            background: none;
+            border: none;
+            color: #ef4444;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* Route panel */
+        .route-panel {
+            padding: 12px 18px;
+            background: #0f172a;
+            margin: 8px 12px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+        }
+        .route-input {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .route-input input {
+            background: #050a0f;
+            border: 1px solid var(--border);
+            padding: 10px 12px;
+            border-radius: 40px;
+            color: white;
+            font-size: 13px;
+            outline: none;
+        }
+        .route-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .btn-route, .btn-clear {
+            background: var(--accent);
+            border: none;
+            padding: 8px 12px;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
+            color: white;
             flex: 1;
-            position: relative;
         }
+        .btn-clear { background: #334155; }
 
-        #map {
-            width: 100%;
-            height: 100%;
-            background: #000;
-        }
+        /* MAP + CHAT (existing enhancements) */
+        #map-container { flex: 1; position: relative; }
+        #map { width: 100%; height: 100%; background: #000; }
 
         .map-layer-toggle {
             position: absolute;
@@ -160,38 +205,31 @@
             right: 20px;
             z-index: 1000;
             background: var(--sidebar-bg);
-            border: 1px solid var(--border);
-            padding: 5px;
-            border-radius: 8px;
+            border-radius: 12px;
             display: flex;
-            gap: 5px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            gap: 4px;
+            padding: 6px;
+            backdrop-filter: blur(4px);
         }
-
         .layer-btn {
             background: none;
             border: none;
             color: var(--text-secondary);
-            padding: 8px 12px;
-            border-radius: 6px;
+            padding: 6px 12px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 12px;
             font-weight: 600;
-            transition: 0.2s;
         }
+        .layer-btn.active { background: var(--accent); color: white; }
 
-        .layer-btn.active {
-            background: var(--accent);
-            color: white;
-        }
-
-        /* --- CHAT UI --- */
+        /* Chat window */
         .chat-toggle {
             position: absolute;
             bottom: 24px;
             right: 24px;
-            width: 60px;
-            height: 60px;
+            width: 56px;
+            height: 56px;
             background: var(--accent);
             border-radius: 50%;
             display: flex;
@@ -201,350 +239,494 @@
             box-shadow: 0 0 20px var(--accent-glow);
             z-index: 1001;
         }
-
         .chat-window {
             position: absolute;
             bottom: 100px;
             right: 24px;
             width: 380px;
-            height: 550px;
+            height: 540px;
             background: var(--sidebar-bg);
             border: 1px solid var(--border);
-            border-radius: 20px;
+            border-radius: 24px;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
             transform: translateY(20px);
             opacity: 0;
             pointer-events: none;
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1);
             z-index: 1002;
             overflow: hidden;
         }
-
-        .chat-window.active {
-            transform: translateY(0);
-            opacity: 1;
-            pointer-events: auto;
-        }
-
+        .chat-window.active { transform: translateY(0); opacity: 1; pointer-events: auto; }
         .chat-header {
-            padding: 18px;
-            background: rgba(255,255,255,0.03);
+            padding: 16px;
+            background: #0f172a;
             border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
             gap: 12px;
         }
-
         .chat-messages {
             flex: 1;
             overflow-y: auto;
-            padding: 20px;
+            padding: 16px;
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 12px;
         }
-
-        .msg { max-width: 85%; line-height: 1.5; font-size: 14px; }
-        .msg-content { padding: 12px 16px; border-radius: 15px; }
-        
-        .msg.bot .msg-content { background: #1e293b; border-bottom-left-radius: 2px; }
-        .msg.user { align-self: flex-end; }
-        .msg.user .msg-content { background: var(--accent); color: white; border-bottom-right-radius: 2px; }
-
+        .msg { max-width: 85%; font-size: 13px; line-height: 1.4; }
+        .msg-content { padding: 10px 14px; border-radius: 18px; }
+        .msg.bot .msg-content { background: #1e293b; border-bottom-left-radius: 4px; }
+        .msg.user .msg-content { background: var(--accent); color: white; border-bottom-right-radius: 4px; align-self: flex-end; }
         .insight-card {
-            margin-top: 10px;
-            background: rgba(0,0,0,0.25);
-            border: 1px solid rgba(255,255,255,0.08);
+            margin-top: 8px;
+            background: rgba(0,0,0,0.3);
             border-radius: 12px;
-            padding: 12px;
-            font-size: 13px;
+            padding: 10px;
+            font-size: 11px;
         }
-
-        .insight-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .insight-item { font-size: 11px; }
-        .insight-label { color: var(--accent); font-weight: 700; text-transform: uppercase; margin-bottom: 2px; font-size: 10px; }
-
         .chat-input-area {
-            padding: 16px;
+            padding: 12px;
             border-top: 1px solid var(--border);
             display: flex;
-            gap: 10px;
+            gap: 8px;
         }
-
         .chat-input-area input {
             flex: 1;
             background: #050a0f;
             border: 1px solid var(--border);
-            padding: 12px 16px;
-            border-radius: 10px;
+            padding: 10px 14px;
+            border-radius: 40px;
             color: white;
-            outline: none;
         }
-
-        .chat-input-area button {
-            background: var(--accent);
-            border: none;
-            color: white;
-            padding: 0 20px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        .leaflet-popup-content-wrapper { background: #111827; color: white; border: 1px solid #374151; font-family: 'Inter', sans-serif; }
-        .leaflet-popup-tip { background: #111827; }
-
+        .leaflet-popup-content-wrapper { background: #111827; color: white; border-radius: 12px; }
+        .leaflet-routing-container { background: #0f172a; color: white; }
     </style>
 </head>
 <body>
 
-    <header>
-        <div style="display:flex; align-items:center; gap:12px;">
-            <div style="width:36px; height:36px; background:var(--accent); border-radius:10px; display:flex; align-items:center; justify-content:center; font-weight:bold; box-shadow: 0 0 15px var(--accent-glow);">TE</div>
-            <h1 style="font-size:18px">Travel Explorer <span style="font-weight:300; opacity:0.6; font-size: 14px;">| Satellite Edition</span></h1>
-        </div>
-        <div style="display:flex; gap:15px; align-items:center;">
-            <span style="font-size: 12px; color: #22c55e;">● Live Global Data</span>
-        </div>
-    </header>
-
-    <div class="main-container">
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <span>Visited Journal</span>
-                <span id="counter" style="color:var(--accent)">0</span>
-            </div>
-            <div class="place-list" id="place-list"></div>
-        </aside>
-
-        <main id="map-container">
-            <div id="map"></div>
-            
-            <div class="map-layer-toggle">
-                <button class="layer-btn active" id="btn-sat" onclick="setLayer('sat')">Satellite</button>
-                <button class="layer-btn" id="btn-dark" onclick="setLayer('dark')">Night View</button>
-            </div>
-
-            <div class="chat-toggle" onclick="toggleChat()">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-            </div>
-
-            <div class="chat-window" id="chat-window">
-                <div class="chat-header">
-                    <div style="width:32px; height:32px; background:#22c55e; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:12px;">AI</div>
-                    <div>
-                        <div style="font-weight:600; font-size:14px;">Travel Guru</div>
-                        <div style="font-size:10px; color:#22c55e;">Online • Ready to Explore</div>
-                    </div>
-                </div>
-                <div class="chat-messages" id="chat-messages">
-                    <div class="msg bot">
-                        <div class="msg-content">
-                            Welcome! Ask me to show you any place on Earth. I'll give you <b>live satellite views</b> and <b>travel tips</b>!
-                        </div>
-                    </div>
-                </div>
-                <div class="chat-input-area">
-                    <input type="text" id="chat-input" placeholder="e.g. 'Show me Bora Bora'..." onkeypress="handleKey(event)">
-                    <button onclick="sendMessage()">Explore</button>
-                </div>
-            </div>
-        </main>
+<header>
+    <div style="display:flex; align-items:center; gap:12px;">
+        <div style="width:36px; height:36px; background:var(--accent); border-radius:10px; display:flex; align-items:center; justify-content:center;">🌍</div>
+        <h1 style="font-size:18px">Travel Explorer <span style="font-weight:300; font-size:13px;">| Routes & Pins</span></h1>
     </div>
+    <span style="font-size: 12px; background: #1e293b; padding: 4px 12px; border-radius: 30px;">✨ AI Guide</span>
+</header>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script>
-        let map;
-        let layers = {};
-        let visitedCount = 0;
+<div class="main-container">
+    <aside class="sidebar">
+        <div class="sidebar-section">
+            <div class="section-title">📔 VISITED JOURNAL</div>
+            <div class="place-list" id="place-list"></div>
+        </div>
 
-        function initMap() {
-            map = L.map('map', { zoomControl: false }).setView([20, 0], 2);
+        <div class="sidebar-section">
+            <div class="section-title">📍 PINNED PLACES</div>
+            <div id="pins-container" class="pins-list"></div>
+        </div>
 
-            layers.dark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; OpenStreetMap'
-            });
+        <div class="sidebar-section">
+            <div class="section-title">🗺️ ROUTE PLANNER</div>
+            <div class="route-panel">
+                <div class="route-input">
+                    <input type="text" id="route-start" placeholder="Start location (e.g., Eiffel Tower)" value="Paris, France">
+                    <input type="text" id="route-end" placeholder="Destination (e.g., Louvre Museum)">
+                </div>
+                <div class="route-actions">
+                    <button class="btn-route" id="show-route-btn">✨ Show Route</button>
+                    <button class="btn-clear" id="clear-route-btn">🗑️ Clear</button>
+                </div>
+                <div style="font-size:10px; margin-top:8px; color:#64748b;">💡 Try "route from London to Stonehenge" in chat!</div>
+            </div>
+        </div>
+    </aside>
 
-            layers.sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                attribution: 'Esri &mdash; Source: Esri'
-            });
+    <main id="map-container">
+        <div id="map"></div>
+        <div class="map-layer-toggle">
+            <button class="layer-btn active" id="btn-sat">🛰️ Satellite</button>
+            <button class="layer-btn" id="btn-dark">🌙 Night Mode</button>
+        </div>
+        <div class="chat-toggle" onclick="toggleChat()">💬</div>
+        <div class="chat-window" id="chat-window">
+            <div class="chat-header">
+                <div style="width:34px; height:34px; background:#22c55e; border-radius:50%; display:flex; align-items:center; justify-content:center;">🧭</div>
+                <div><strong>Travel Guru AI</strong><div style="font-size:10px;">🌎 Routes · Pins · Satellite</div></div>
+            </div>
+            <div class="chat-messages" id="chat-messages">
+                <div class="msg bot"><div class="msg-content">✈️ Ready! Ask me: <br/>📍 "Show me Santorini" <br/>🗺️ "Route from Berlin to Prague" <br/>📌 "Pin this place" after search</div></div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Explore or ask for route..." onkeypress="handleKey(event)">
+                <button onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </main>
+</div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+
+<script>
+    // --- GLOBALS ---
+    let map;
+    let layers = {};
+    let visitedCount = 0;
+    let currentSearchMarker = null;
+    let activeRoutingControl = null;
+    
+    // Pins management
+    let pinnedPlaces = []; // { id, name, lat, lng, country, insights }
+    let pinMarkers = [];
+    
+    // Helper: generate unique ID
+    function uid() { return Date.now() + '-' + Math.random().toString(36).substr(2, 8); }
+    
+    // --- MAP INIT ---
+    function initMap() {
+        map = L.map('map', { zoomControl: false }).setView([34.5, -98], 3);
+        layers.sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Esri &mdash; Satellite'
+        });
+        layers.dark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: 'CartoDB'
+        });
+        layers.sat.addTo(map);
+        L.control.zoom({ position: 'bottomleft' }).addTo(map);
+        
+        // custom pin icon style (distinct marker)
+        map.on('click', () => { });
+    }
+    
+    function setLayer(type) {
+        if (type === 'sat') {
+            map.removeLayer(layers.dark);
             layers.sat.addTo(map);
-            L.control.zoom({ position: 'bottomleft' }).addTo(map);
+            document.getElementById('btn-sat').classList.add('active');
+            document.getElementById('btn-dark').classList.remove('active');
+        } else {
+            map.removeLayer(layers.sat);
+            layers.dark.addTo(map);
+            document.getElementById('btn-dark').classList.add('active');
+            document.getElementById('btn-sat').classList.remove('active');
         }
-
-        function setLayer(type) {
-            if (type === 'sat') {
-                map.removeLayer(layers.dark);
-                layers.sat.addTo(map);
-                document.getElementById('btn-sat').classList.add('active');
-                document.getElementById('btn-dark').classList.remove('active');
-            } else {
-                map.removeLayer(layers.sat);
-                layers.dark.addTo(map);
-                document.getElementById('btn-dark').classList.add('active');
-                document.getElementById('btn-sat').classList.remove('active');
-            }
+    }
+    
+    // --- IMAGE FIX: better unsplash & robust fallback ---
+    function getTravelImageUrl(placeName, country) {
+        const keywords = encodeURIComponent(`${placeName} ${country} travel landmark scenic`);
+        // using unsplash random + sig to force variety, but fallback guaranteed
+        return `https://source.unsplash.com/400x300/?${keywords}&sig=${Math.floor(Math.random() * 10000)}`;
+    }
+    
+    // --- Generate insights (dynamic)
+    function generateInsights(place, nameOverride = null) {
+        const name = nameOverride || (place.display_name ? place.display_name.split(',')[0] : "Destination");
+        const country = place.address?.country || "Amazing Region";
+        const specialties = [
+            "Breathtaking landscapes & natural wonders", "Rich cultural heritage & iconic landmarks",
+            "Vibrant nightlife & gastronomy", "Adventure & outdoor activities", "Pristine beaches & coastal views"
+        ];
+        const times = ["Spring (Mar-May)", "Autumn (Sep-Nov)", "Summer (Jun-Aug)", "Winter (Dec-Feb)"];
+        return {
+            summary: `${name} in ${country} offers unforgettable experiences and authentic vibes.`,
+            specialty: specialties[Math.floor(Math.random() * specialties.length)],
+            time: times[Math.floor(Math.random() * times.length)]
+        };
+    }
+    
+    // --- SIDEBAR: add visited place (with pin button)
+    function addToSidebar(place, insights) {
+        const list = document.getElementById('place-list');
+        const name = place.display_name.split(',')[0];
+        const country = place.address?.country || "Mystic Land";
+        const lat = parseFloat(place.lat);
+        const lon = parseFloat(place.lon);
+        const imgUrl = getTravelImageUrl(name, country);
+        
+        const card = document.createElement('div');
+        card.className = 'place-card';
+        card.innerHTML = `
+            <div class="place-img-container">
+                <img src="${imgUrl}" class="place-img" alt="${name}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=400&q=80'; this.style.opacity=1" onload="this.style.opacity=1">
+            </div>
+            <div class="place-info">
+                <div class="tag">✨ DESTINATION</div>
+                <h4>${escapeHtml(name)}</h4>
+                <p>${escapeHtml(country)}</p>
+                <div style="font-size:10px; color:var(--accent); margin:4px 0">📅 ${insights.time}</div>
+                <button class="btn-pin" data-lat="${lat}" data-lon="${lon}" data-name="${escapeHtml(name)}" data-country="${escapeHtml(country)}">📌 Pin this place</button>
+            </div>
+        `;
+        card.querySelector('.btn-pin').addEventListener('click', (e) => {
+            e.stopPropagation();
+            const btn = e.currentTarget;
+            const pinLat = parseFloat(btn.dataset.lat);
+            const pinLon = parseFloat(btn.dataset.lon);
+            const pinName = btn.dataset.name;
+            const pinCountry = btn.dataset.country;
+            addPin({ lat: pinLat, lon: pinLon, name: pinName, country: pinCountry, insights });
+        });
+        card.onclick = () => map.flyTo([lat, lon], 13, { duration: 1.5 });
+        list.prepend(card);
+    }
+    
+    // --- PIN FEATURE ---
+    function renderPinsUI() {
+        const container = document.getElementById('pins-container');
+        if (!container) return;
+        container.innerHTML = '';
+        if (pinnedPlaces.length === 0) {
+            container.innerHTML = '<div style="padding:12px; text-align:center; font-size:12px; color:#64748b;">🔖 No pins yet. Click 📌 on visited places</div>';
+            return;
         }
-
-        window.onload = initMap;
-
-        function toggleChat() {
-            document.getElementById('chat-window').classList.toggle('active');
+        pinnedPlaces.forEach(pin => {
+            const pinDiv = document.createElement('div');
+            pinDiv.className = 'pin-card';
+            pinDiv.innerHTML = `
+                <div class="pin-icon">📍</div>
+                <div class="pin-details">
+                    <div class="pin-name">${escapeHtml(pin.name)}</div>
+                    <div style="font-size:10px; color:#94a3b8;">${escapeHtml(pin.country)}</div>
+                </div>
+                <button class="remove-pin" data-id="${pin.id}">✖</button>
+            `;
+            pinDiv.querySelector('.remove-pin').addEventListener('click', (e) => {
+                e.stopPropagation();
+                removePinById(pin.id);
+            });
+            pinDiv.addEventListener('click', () => {
+                map.flyTo([pin.lat, pin.lon], 12);
+                L.popup().setLatLng([pin.lat, pin.lon]).setContent(`📍 <b>${pin.name}</b> (pinned)`).openOn(map);
+            });
+            container.appendChild(pinDiv);
+        });
+    }
+    
+    function syncPinMarkers() {
+        // remove all existing pin markers from map
+        pinMarkers.forEach(m => map.removeLayer(m));
+        pinMarkers = [];
+        pinnedPlaces.forEach(pin => {
+            const marker = L.marker([pin.lat, pin.lon], { title: `Pinned: ${pin.name}` }).addTo(map);
+            marker.bindPopup(`<b>📌 ${pin.name}</b><br>${pin.country}<br><button id="unpin-${pin.id}" style="background:#ef4444; border:none; color:white; border-radius:20px; padding:4px 10px; margin-top:5px; cursor:pointer;">Remove Pin</button>`);
+            marker.on('popupopen', () => {
+                const btn = document.getElementById(`unpin-${pin.id}`);
+                if (btn) btn.onclick = () => removePinById(pin.id);
+            });
+            pinMarkers.push(marker);
+        });
+    }
+    
+    function addPin(placeObj) {
+        if (!placeObj.lat || !placeObj.lon) return;
+        const exists = pinnedPlaces.some(p => p.name === placeObj.name && Math.abs(p.lat - placeObj.lat) < 0.001);
+        if (exists) {
+            addChatMessageBot("📍 This place is already pinned!", null);
+            return;
         }
-
-        function handleKey(e) { if (e.key === 'Enter') sendMessage(); }
-
-        function sendMessage() {
-            const input = document.getElementById('chat-input');
-            const text = input.value.trim();
-            if (!text) return;
-            addMessage(text, 'user');
-            input.value = '';
-            processRequest(text);
+        const newPin = {
+            id: uid(),
+            name: placeObj.name,
+            lat: placeObj.lat,
+            lon: placeObj.lon,
+            country: placeObj.country || "Unknown",
+            insights: placeObj.insights || { summary: "Pinned spot", specialty: "Local gem", time: "All year" }
+        };
+        pinnedPlaces.push(newPin);
+        renderPinsUI();
+        syncPinMarkers();
+        addChatMessageBot(`📌 Pinned: ${newPin.name}. Check your pins list!`, null);
+    }
+    
+    function removePinById(id) {
+        pinnedPlaces = pinnedPlaces.filter(p => p.id !== id);
+        renderPinsUI();
+        syncPinMarkers();
+        addChatMessageBot("🗑️ Pin removed.", null);
+    }
+    
+    // --- ROUTE LOGIC (geocode + leaflet routing)---
+    async function geocodeAddress(query) {
+        if (!query.trim()) return null;
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+        const data = await res.json();
+        if (data && data.length) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), name: data[0].display_name };
+        return null;
+    }
+    
+    async function buildRoute(startText, endText) {
+        if (activeRoutingControl) map.removeControl(activeRoutingControl);
+        addChatMessageBot(`🔍 Finding route from "${startText}" to "${endText}"...`, null);
+        const startPoint = await geocodeAddress(startText);
+        const endPoint = await geocodeAddress(endText);
+        if (!startPoint || !endPoint) {
+            addChatMessageBot("❌ Could not locate start or destination. Try more specific names.", null);
+            return;
         }
-
-        function addMessage(text, role, insights = null) {
-            const container = document.getElementById('chat-messages');
-            const msgDiv = document.createElement('div');
-            msgDiv.className = `msg ${role}`;
-            
-            let html = `<div class="msg-content">${text}</div>`;
-            
-            if (insights) {
-                html += `
-                <div class="insight-card">
-                    <div class="insight-label">Destination Profile</div>
-                    <div style="margin-bottom:8px">${insights.summary}</div>
-                    <div class="insight-grid">
-                        <div class="insight-item">
-                            <div class="insight-label">Specialty</div>
-                            <div>${insights.specialty}</div>
-                        </div>
-                        <div class="insight-item">
-                            <div class="insight-label">Best Time</div>
-                            <div>${insights.time}</div>
-                        </div>
-                    </div>
-                </div>`;
-            }
-
-            msgDiv.innerHTML = html;
-            container.appendChild(msgDiv);
-            container.scrollTop = container.scrollHeight;
+        // fly to show both bounds
+        const bounds = L.latLngBounds([startPoint.lat, startPoint.lng], [endPoint.lat, endPoint.lng]);
+        map.fitBounds(bounds, { padding: [50,50] });
+        
+        activeRoutingControl = L.Routing.control({
+            waypoints: [
+                L.latLng(startPoint.lat, startPoint.lng),
+                L.latLng(endPoint.lat, endPoint.lng)
+            ],
+            routeWhileDragging: false,
+            showAlternatives: false,
+            lineOptions: { styles: [{ color: '#3b82f6', weight: 5, opacity: 0.8 }] },
+            addWaypoints: false,
+            fitSelectedRoutes: false
+        }).addTo(map);
+        
+        addChatMessageBot(`🚗 Route ready: ${startText} → ${endText}. Route line on map.`, null);
+    }
+    
+    function clearRoute() {
+        if (activeRoutingControl) {
+            map.removeControl(activeRoutingControl);
+            activeRoutingControl = null;
+            addChatMessageBot("🗺️ Route cleared.", null);
+        } else {
+            addChatMessageBot("No active route to clear.", null);
         }
-
-        async function processRequest(text) {
-            const locationQuery = text.replace(/(find|take me to|show me|where is|go to)/gi, "").trim();
-            
-            if (locationQuery.length < 2) {
-                addMessage("Which destination are we heading to?", "bot");
+    }
+    
+    // --- CHAT BOT CORE (enhanced with route detection & pin support)---
+    function addChatMessageBot(text, insights) {
+        const container = document.getElementById('chat-messages');
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'msg bot';
+        let html = `<div class="msg-content">${text}</div>`;
+        if (insights) {
+            html += `
+            <div class="insight-card">
+                <div><strong>✨ ${insights.summary}</strong></div>
+                <div style="margin-top:5px;">🏆 ${insights.specialty}<br>📅 Best: ${insights.time}</div>
+            </div>`;
+        }
+        msgDiv.innerHTML = html;
+        container.appendChild(msgDiv);
+        container.scrollTop = container.scrollHeight;
+    }
+    
+    function addChatMessageUser(text) {
+        const container = document.getElementById('chat-messages');
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'msg user';
+        msgDiv.innerHTML = `<div class="msg-content">${escapeHtml(text)}</div>`;
+        container.appendChild(msgDiv);
+        container.scrollTop = container.scrollHeight;
+    }
+    
+    async function processRequest(text) {
+        const lower = text.toLowerCase();
+        // --- ROUTE detection ---
+        if (lower.includes('route from') && lower.includes(' to ')) {
+            const match = text.match(/route from (.+?) to (.+)/i);
+            if (match) {
+                const start = match[1].trim();
+                const end = match[2].trim();
+                await buildRoute(start, end);
                 return;
             }
-
-            try {
-                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationQuery)}&addressdetails=1&limit=1`);
-                const data = await res.json();
-
-                if (data && data.length > 0) {
-                    const place = data[0];
-                    const lat = parseFloat(place.lat);
-                    const lon = parseFloat(place.lon);
-                    const name = place.display_name.split(',')[0];
-
-                    const insights = generateInsights(place);
-
-                    map.flyTo([lat, lon], 14, { duration: 2.5 });
-                    
-                    setTimeout(() => {
-                        const marker = L.marker([lat, lon]).addTo(map);
-                        marker.bindPopup(`<b>${name}</b><br><span style="font-size:12px">${insights.specialty}</span>`).openPopup();
-                    }, 2000);
-                    
-                    addMessage(`Traveling to ${name}... Here is some info on your destination!`, "bot", insights);
-                    addToSidebar(place, insights);
-                    
-                    visitedCount++;
-                    document.getElementById('counter').innerText = visitedCount;
-                } else {
-                    addMessage("I couldn't find that specific spot. Try another name?", "bot");
-                }
-            } catch (e) {
-                addMessage("Map data is currently unreachable.", "bot");
+        }
+        // --- PIN command: "pin this place" but we need last searched context? store last location
+        if (lower.includes('pin') && lower.includes('last place') || (lower === 'pin this place' && window.lastSearchedPlace)) {
+            if (window.lastSearchedPlace) {
+                const p = window.lastSearchedPlace;
+                addPin({ lat: p.lat, lon: p.lon, name: p.name, country: p.country, insights: p.insights });
+            } else {
+                addChatMessageBot("No recent place found. Search a location first like 'Show me Bali'", null);
             }
+            return;
         }
-
-        function generateInsights(place) {
-            const name = place.display_name.split(',')[0];
-            const country = place.address.country || "Global Region";
-            
-            const specialties = [
-                "Breathtaking local landscapes and natural beauty.",
-                "Iconic historical landmarks and rich architecture.",
-                "World-renowned local cuisine and vibrant food markets.",
-                "Authentic cultural traditions and lively local arts.",
-                "Pristine beaches and peaceful coastal retreats."
-            ];
-            
-            const times = [
-                "Spring (March - May)",
-                "Autumn (Sept - Nov)",
-                "Winter (Dec - Feb)",
-                "Summer (June - Aug)"
-            ];
-
-            return {
-                summary: `${name} is a stunning location in ${country}, offering a unique blend of heritage and scenery.`,
-                specialty: specialties[Math.floor(Math.random() * specialties.length)],
-                time: times[Math.floor(Math.random() * times.length)]
-            };
+        
+        // --- NORMAL SEARCH ---
+        const locationQuery = text.replace(/(find|take me to|show me|where is|go to|explore)/gi, "").trim();
+        if (locationQuery.length < 2) {
+            addChatMessageBot("🌎 Tell me a destination or ask 'route from Paris to Rome'", null);
+            return;
         }
-
-        function addToSidebar(place, insights) {
-            const list = document.getElementById('place-list');
-            const name = place.display_name.split(',')[0];
-            const country = place.address.country || "";
-            
-            // NEW IMAGE STRATEGY: 
-            // 1. Using source.unsplash.com/featured which handles keywords natively
-            // 2. Added destination name AND country as keywords
-            // 3. Added a random seed to force a fresh pull even for the same place
-            const searchKeywords = encodeURIComponent(name + "," + country + ",travel,landscape");
-            const finalPhotoUrl = `https://source.unsplash.com/featured/400x300?${searchKeywords}&sig=${Math.floor(Math.random() * 10000)}`;
-
-            const card = document.createElement('div');
-            card.className = 'place-card';
-            
-            card.innerHTML = `
-                <div class="place-img-container">
-                    <img src="${finalPhotoUrl}" 
-                         class="place-img" 
-                         alt="${name}"
-                         onload="this.style.opacity=1"
-                         onerror="this.src='https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=400&q=80'">
-                </div>
-                <div class="place-info">
-                    <div class="tag">Destination</div>
-                    <h4>${name}</h4>
-                    <p>${country}</p>
-                    <div style="font-size:10px; margin-top:8px; color:var(--accent); font-weight:600">Best Visit: ${insights.time}</div>
-                </div>
-            `;
-            
-            card.onclick = () => {
-                map.flyTo([place.lat, place.lon], 15);
-            };
-            
-            list.prepend(card);
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationQuery)}&addressdetails=1&limit=1`);
+            const data = await res.json();
+            if (data && data.length > 0) {
+                const place = data[0];
+                const lat = parseFloat(place.lat);
+                const lon = parseFloat(place.lon);
+                const name = place.display_name.split(',')[0];
+                const country = place.address?.country || "Unknown";
+                const insights = generateInsights(place, name);
+                
+                // store last place for pin
+                window.lastSearchedPlace = { lat, lon, name, country, insights };
+                
+                map.flyTo([lat, lon], 13, { duration: 2 });
+                if (currentSearchMarker) map.removeLayer(currentSearchMarker);
+                currentSearchMarker = L.marker([lat, lon]).addTo(map);
+                currentSearchMarker.bindPopup(`<b>${name}</b><br>${insights.specialty}<br><button id="quickPinBtn" style="background:#f59e0b; border:none; border-radius:20px; padding:4px 10px; margin-top:5px;">📌 Pin</button>`).openPopup();
+                setTimeout(() => {
+                    const pinBtn = document.getElementById('quickPinBtn');
+                    if (pinBtn) pinBtn.onclick = () => addPin({ lat, lon, name, country, insights });
+                }, 100);
+                
+                addChatMessageBot(`📍 Arrived at ${name}!`, insights);
+                addToSidebar(place, insights);
+                visitedCount++;
+                document.getElementById('counter')?.remove();
+                const counterSpan = document.querySelector('#counter') || (()=>{let sp=document.createElement('span'); sp.id='counter'; document.querySelector('.sidebar-header')?.appendChild(sp); return sp;})();
+                counterSpan.innerText = visitedCount;
+                counterSpan.style.color = 'var(--accent)';
+            } else {
+                addChatMessageBot("🌿 Couldn't find that place. Try a well-known landmark or city.", null);
+            }
+        } catch (e) {
+            addChatMessageBot("Network error. Check connection & retry.", null);
         }
-    </script>
+    }
+    
+    function sendMessage() {
+        const input = document.getElementById('chat-input');
+        const txt = input.value.trim();
+        if (!txt) return;
+        addChatMessageUser(txt);
+        input.value = '';
+        processRequest(txt);
+    }
+    
+    function handleKey(e) { if (e.key === 'Enter') sendMessage(); }
+    function toggleChat() { document.getElementById('chat-window').classList.toggle('active'); }
+    
+    function escapeHtml(str) { return str.replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+    
+    // --- EVENT LISTENERS & UI ROUTE ---
+    window.onload = () => {
+        initMap();
+        window.setLayer = setLayer;
+        document.getElementById('btn-sat').onclick = () => setLayer('sat');
+        document.getElementById('btn-dark').onclick = () => setLayer('dark');
+        document.getElementById('show-route-btn').onclick = async () => {
+            const start = document.getElementById('route-start').value;
+            const end = document.getElementById('route-end').value;
+            if (start && end) await buildRoute(start, end);
+            else addChatMessageBot("Fill both start and destination fields", null);
+        };
+        document.getElementById('clear-route-btn').onclick = () => clearRoute();
+        // initial empty pins
+        renderPinsUI();
+        // set visited counter element
+        const headerSpan = document.querySelector('.sidebar-header');
+        if (!document.getElementById('counter')) {
+            const span = document.createElement('span');
+            span.id = 'counter';
+            span.style.color = 'var(--accent)';
+            headerSpan?.appendChild(span);
+        }
+        document.getElementById('counter').innerText = "0";
+    };
+</script>
 </body>
 </html>
