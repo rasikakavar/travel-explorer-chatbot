@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Travel Explorer</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',sans-serif;background:#050f1e;color:#c8ddf5;height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+header{padding:14px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #1a3a5c;background:#060d1b;flex-shrink:0;}
+header h1{font-size:20px;color:#e0eeff;letter-spacing:0.02em;}
+header span{font-size:12px;color:#5a8abf;}
+.main{display:flex;flex:1;overflow:hidden;position:relative;}
+
+/* SIDEBAR */
+.sidebar{width:220px;min-width:220px;background:#07111f;border-right:1px solid #1a3a5c;overflow-y:auto;padding:12px 10px;display:flex;flex-direction:column;gap:5px;}
+.sidebar::-webkit-scrollbar{width:3px;}
+.sidebar::-webkit-scrollbar-thumb{background:#1a3a5c;border-radius:4px;}
+.s-label{font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#2a5a8a;margin:8px 0 4px 2px;}
+.dest-card{background:#0b1c30;border:1px solid #152840;border-radius:8px;padding:8px 10px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background 0.15s,border-color 0.15s;}
+.dest-card:hover,.dest-card.active{background:#102a47;border-color:#2a6aaa;}
+.dest-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.dest-name{font-size:12px;font-weight:500;color:#b0cce8;}
+.dest-type{font-size:10px;color:#3a6a9a;}
+.route-btn{background:#0a1829;border:1px solid #152840;border-radius:8px;padding:8px 10px;cursor:pointer;text-align:left;width:100%;font-size:11px;color:#6a9dcc;font-family:'Segoe UI',sans-serif;transition:background 0.15s;line-height:1.4;}
+.route-btn:hover,.route-btn.active{background:#102a47;border-color:#2a6aaa;color:#a0c8e8;}
+.route-stops{font-size:9px;color:#2a5a8a;margin-top:2px;}
+
+/* MAP AREA */
+.map-wrap{flex:1;position:relative;overflow:hidden;background:#060e1c;}
+#world-svg{width:100%;height:100%;display:block;}
+
+/* POPUP */
+.popup{position:absolute;width:270px;background:#07111f;border:1px solid #1e4a7a;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.7);z-index:100;display:none;animation:popIn 0.18s ease;}
+.popup.show{display:block;}
+@keyframes popIn{from{opacity:0;transform:scale(0.93) translateY(8px);}to{opacity:1;transform:scale(1) translateY(0);}}
+.popup-head{padding:14px 16px 0;position:relative;}
+.popup-emoji{font-size:32px;display:block;margin-bottom:6px;}
+.popup-tag{display:inline-block;font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:2px 8px;border-radius:20px;margin-bottom:5px;}
+.popup-title{font-size:17px;font-weight:600;color:#ddeeff;margin-bottom:4px;}
+.popup-desc{font-size:11px;color:#6a9dcc;line-height:1.6;margin-bottom:10px;padding:0 16px;}
+.popup-meta{display:flex;gap:0;border-top:1px solid #102a47;border-bottom:1px solid #102a47;}
+.popup-meta-item{flex:1;padding:8px 10px;text-align:center;border-right:1px solid #102a47;}
+.popup-meta-item:last-child{border-right:none;}
+.popup-meta-label{font-size:9px;color:#2a5a8a;display:block;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.06em;}
+.popup-meta-val{font-size:10px;color:#8ab8e0;font-weight:500;}
+.popup-foot{padding:10px 12px;display:flex;gap:8px;}
+.btn-ask{flex:1;background:#185fa5;color:#ddeeff;border:none;border-radius:7px;padding:8px 0;font-size:11px;font-weight:600;cursor:pointer;transition:background 0.15s;}
+.btn-ask:hover{background:#2070b8;}
+.btn-close{background:transparent;color:#4a7aaa;border:1px solid #1e4a7a;border-radius:7px;padding:8px 12px;font-size:11px;cursor:pointer;}
+.btn-close:hover{background:#0c2040;}
+.popup-x{position:absolute;top:10px;right:10px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.4);border:none;color:#778;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+
+/* info bar */
+.info-bar{position:absolute;bottom:0;left:0;right:0;background:rgba(5,10,20,0.88);border-top:1px solid #1a3a5c;padding:6px 14px;font-size:10px;color:#2a5a8a;pointer-events:none;z-index:50;}
+
+/* CHATBOT */
+.chat-fab{position:fixed;bottom:22px;right:22px;width:48px;height:48px;border-radius:50%;background:#185fa5;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 18px rgba(24,95,165,0.55);z-index:900;transition:transform 0.15s,background 0.15s;}
+.chat-fab:hover{background:#2070b8;transform:scale(1.07);}
+.chat-fab svg{width:20px;height:20px;fill:#fff;}
+.chat-win{position:fixed;bottom:80px;right:22px;width:310px;max-height:440px;background:#07111f;border:1px solid #1e4a7a;border-radius:13px;box-shadow:0 8px 36px rgba(0,0,0,0.7);z-index:899;display:none;flex-direction:column;overflow:hidden;animation:popIn 0.18s ease;}
+.chat-win.open{display:flex;}
+.chat-hdr{padding:11px 13px;background:#0a1929;border-bottom:1px solid #1a3a5c;display:flex;align-items:center;gap:9px;flex-shrink:0;}
+.chat-av{width:28px;height:28px;border-radius:50%;background:#185fa5;display:flex;align-items:center;justify-content:center;font-size:13px;}
+.chat-hdr-name{font-size:12px;font-weight:600;color:#ddeeff;}
+.chat-hdr-status{font-size:9px;color:#2a9a50;}
+.chat-msgs{flex:1;overflow-y:auto;padding:10px 10px 5px;display:flex;flex-direction:column;gap:7px;}
+.chat-msgs::-webkit-scrollbar{width:3px;}
+.chat-msgs::-webkit-scrollbar-thumb{background:#1a3a5c;border-radius:4px;}
+.msg{display:flex;flex-direction:column;max-width:86%;}
+.msg.bot{align-self:flex-start;}
+.msg.user{align-self:flex-end;}
+.msg-b{padding:7px 10px;border-radius:10px;font-size:11px;line-height:1.55;}
+.msg.bot .msg-b{background:#0c2040;color:#a8c8e8;border-bottom-left-radius:2px;}
+.msg.user .msg-b{background:#185fa5;color:#ddeeff;border-bottom-right-radius:2px;}
+.msg-t{font-size:9px;color:#2a5a8a;margin-top:2px;padding:0 2px;}
+.msg.user .msg-t{text-align:right;}
+.typing .msg-b{display:flex;align-items:center;gap:4px;padding:10px 12px;}
+.td{width:5px;height:5px;border-radius:50%;background:#2a5a8a;animation:tb 1.2s infinite ease-in-out;}
+.td:nth-child(2){animation-delay:0.2s;}
+.td:nth-child(3){animation-delay:0.4s;}
+@keyframes tb{0%,60%,100%{transform:translateY(0);}30%{transform:translateY(-4px);}}
+.quick-wrap{display:flex;flex-wrap:wrap;gap:4px;padding:0 10px 7px;}
+.qbtn{background:#0c2040;border:1px solid #1e4a7a;border-radius:20px;padding:3px 9px;font-size:10px;color:#6a9dcc;cursor:pointer;font-family:'Segoe UI',sans-serif;}
+.qbtn:hover{background:#102a47;color:#a0c8e8;}
+.chat-inp-row{padding:8px 9px;border-top:1px solid #1a3a5c;display:flex;gap:6px;align-items:center;flex-shrink:0;}
+.chat-inp{flex:1;background:#0c2040;border:1px solid #1e4a7a;border-radius:7px;padding:6px 10px;font-size:11px;color:#b0cce8;font-family:'Segoe UI',sans-serif;outline:none;resize:none;min-height:30px;max-height:60px;}
+.chat-inp::placeholder{color:#1e4a6a;}
+.chat-inp:focus{border-color:#2a6aaa;}
+.chat-send-btn{width:30px;height:30px;border-radius:7px;background:#185fa5;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.chat-send-btn:hover{background:#2070b8;}
+.chat-send-btn svg{width:13px;height:13px;fill:#fff;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>✈ Travel Explorer</h1>
+  <span>Interactive Route Planner — Offline</span>
+</header>
+
+<div class="main">
+  <!-- Sidebar -->
+  <div class="sidebar" id="sidebar">
+    <div class="s-label">Destinations</div>
+    <div id="dest-list"></div>
+    <div class="s-label" style="margin-top:10px;">Routes</div>
+    <div id="route-list"></div>
+  </div>
+
+  <!-- Map -->
+  <div class="map-wrap" id="map-wrap">
+    <svg id="world-svg" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#1e4a8a" stop-opacity="0.6"/>
+          <stop offset="100%" stop-color="#050f1e" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+
+      <!-- Ocean background -->
+      <rect width="1000" height="500" fill="#060e1c"/>
+      <!-- Grid lines -->
+      <g stroke="#0a1e34" stroke-width="0.5" opacity="0.8">
+        <line x1="0" y1="125" x2="1000" y2="125"/>
+        <line x1="0" y1="250" x2="1000" y2="250"/>
+        <line x1="0" y1="375" x2="1000" y2="375"/>
+        <line x1="250" y1="0" x2="250" y2="500"/>
+        <line x1="500" y1="0" x2="500" y2="500"/>
+        <line x1="750" y1="0" x2="750" y2="500"/>
+      </g>
+
+      <!-- ===== CONTINENTS (simplified SVG paths) ===== -->
+      <!-- North America -->
+      <path d="M80,60 L180,55 L210,80 L220,120 L200,160 L180,200 L160,230 L140,250 L120,240 L100,220 L85,190 L75,160 L70,130 L75,100 Z" fill="#0d2a4a" stroke="#1a4060" stroke-width="1"/>
+      <!-- Central America -->
+      <path d="M140,250 L155,260 L160,280 L150,290 L138,270 Z" fill="#0d2a4a" stroke="#1a4060" stroke-width="1"/>
+      <!-- South America -->
+      <path d="M155,290 L200,280 L230,300 L240,340 L235,380 L220,410 L200,430 L180,420 L160,400 L148,370 L145,340 L150,310 Z" fill="#0d2a4a" stroke="#1a4060" stroke-width="1"/>
+      <!-- Greenland -->
+      <path d="M185,20 L230,15 L240,35 L225,50 L200,52 L185,40 Z" fill="#0d2a4a" stroke="#1a4060" stroke-width="1"/>
+      <!-- Europe -->
+      <path d="M420,55 L480,50 L500,65 L495,85 L480,100 L460,110 L440,105 L425,90 L415,75 Z" fill="#0d2a4a" stroke="#1a4060" stroke-width="1"/>
+      <!-- Scandinavia -->
+      <path d="M450,30 L470,25 L475,45 L465,60 L450,55 L445,40 Z" fill="#0d2a4a" stroke="#1a4060" stroke-width="1"/>
+      <!-- UK -->
+      <path d="M415,60 L428,55 L432,70 L422,78 L412,70 Z" fill="#0d2a4a" stroke="#1a4060" stroke-width="1"/>
+      <!-- Africa -->
+      <path d="M440,120 L500,115 L530,130 L540,170 L535,220 L520,270 L500,300 L475,310 L450,300 L430,270 L420,230 L418,180 L425,145 Z" fill="#0d2a4a" stroke="#1a4060" stroke-width="1"/>
+      <!-- Asia (main body) -->
+      <path d="M500,50 L650,40 L750,55 L800,70 L820,100 L810,140 L780,160 L740,170 L700,165 L660,155 L620,150 L580,145 L540,130 L510,115 L500,90 Z" fill="#0d2a4a" stroke="#1a4060" stroke-width="1"/>
+      <!-- India -->
+      <path d="M600,155 L630,150 L645,180 L635,215 L615,230 L600,210 L592,180 Z" fill="#0d2a4a" stroke="#1a4060" stroke-width="1"/>
+      <!-- Southeast Asia -->
+      <path d="M720,160 L760,155 L775,175 L765,195 L740,200 L718,185 Z" fill="#0d2a4a" stroke="#1a4060" stroke-width="1"/>
+      <!-- Japan -->
+      <path d="M800,95 L815,88 L822,100 L814,112 L800,108 Z" fill="#0d2a4a" stroke="#1a4060" stroke-width="1"/>
+      <!-- Australia -->
+      <path d="M740,300 L820,295 L850,315 L855,355 L840,385 L810,395 L775,390 L748,370 L735,340 L732,315 Z" fill="#0d2a4a" stroke="#1a4060" stroke-width="1"/>
+      <!-- Middle East -->
+      <path d="M520,110 L570,105 L575,130 L555,145 L525,140 L515,125 Z" fill="#0d2a4a" stroke="#1a4060" stroke-width="1"/>
+
+      <!-- Route lines group -->
+      <g id="route-lines"></g>
+      <!-- Markers group -->
+      <g id="markers"></g>
+    </svg>
+
+    <!-- Popup -->
+    <div class="popup" id="popup">
+      <div class="popup-head">
+        <button class="popup-x" id="popup-x">✕</button>
+        <span class="popup-emoji" id="p-emoji"></span>
+        <span class="popup-tag" id="p-tag"></span>
+        <div class="popup-title" id="p-title"></div>
+      </div>
+      <div class="popup-desc" id="p-desc"></div>
+      <div class="popup-meta">
+        <div class="popup-meta-item"><span class="popup-meta-label">Best time</span><span class="popup-meta-val" id="p-best"></span></div>
+        <div class="popup-meta-item"><span class="popup-meta-label">Language</span><span class="popup-meta-val" id="p-lang"></span></div>
+        <div class="popup-meta-item"><span class="popup-meta-label">Currency</span><span class="popup-meta-val" id="p-curr"></span></div>
+      </div>
+      <div class="popup-foot">
+        <button class="btn-ask" id="p-ask">Ask AI about this ↗</button>
+        <button class="btn-close" id="p-close">Close</button>
+      </div>
+    </div>
+
+    <div class="info-bar" id="info-bar">Click any destination pin on the map or use the sidebar to explore.</div>
+  </div>
+</div>
+
+<!-- Chat FAB -->
+<button class="chat-fab" id="chat-fab">
+  <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+</button>
+<div class="chat-win" id="chat-win">
+  <div class="chat-hdr">
+    <div class="chat-av">✈</div>
+    <div><div class="chat-hdr-name">Travel Assistant</div><div class="chat-hdr-status">● Online</div></div>
+  </div>
+  <div class="chat-msgs" id="chat-msgs"></div>
+  <div class="quick-wrap" id="quick-wrap"></div>
+  <div class="chat-inp-row">
+    <textarea class="chat-inp" id="chat-inp" placeholder="Ask about any destination..." rows="1"></textarea>
+    <button class="chat-send-btn" id="chat-send"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
+  </div>
+</div>
+
+<script>
+// ── DESTINATION DATA
+// SVG coords mapped from lat/lng: x = (lng+180)/360*1000, y = (90-lat)/180*500
+const D = [
+  {id:1,  name:"Paris",      x:469, y:121, type:"city",    emoji:"🗼", desc:"The City of Light — Eiffel Tower, world-class cuisine, the Louvre and Seine river cruises.",        best:"Apr–Jun",  lang:"French",         curr:"Euro €",   color:"#2080d0", tagBg:"#0c2d5e", tagCol:"#7ab8f5"},
+  {id:2,  name:"Swiss Alps", x:480, y:130, type:"nature",  emoji:"🏔️", desc:"Breathtaking peaks, pristine ski slopes and charming mountain villages — a year-round paradise.",    best:"Dec–Mar",  lang:"German/French",  curr:"CHF Fr",   color:"#20a070", tagBg:"#083d2a", tagCol:"#5acca0"},
+  {id:3,  name:"Rome",       x:486, y:135, type:"heritage",emoji:"🏛️", desc:"Walk through 3,000 years of history — Colosseum, Vatican City, and the finest pasta on earth.",      best:"Mar–May",  lang:"Italian",        curr:"Euro €",   color:"#d08020", tagBg:"#3d2206", tagCol:"#e8a840"},
+  {id:4,  name:"Barcelona",  x:456, y:134, type:"city",    emoji:"🎨", desc:"Gaudí's surreal architecture, sun-soaked beaches and a vibrant food scene define this Catalan gem.", best:"May–Jun",  lang:"Spanish/Catalan",curr:"Euro €",   color:"#2080d0", tagBg:"#0c2d5e", tagCol:"#7ab8f5"},
+  {id:5,  name:"Santorini",  x:503, y:148, type:"nature",  emoji:"🌊", desc:"Iconic white-and-blue cliffs over the Aegean Sea with legendary sunsets above the caldera.",          best:"Jun–Sep",  lang:"Greek",          curr:"Euro €",   color:"#20a070", tagBg:"#083d2a", tagCol:"#5acca0"},
+  {id:6,  name:"Prague",     x:488, y:114, type:"heritage",emoji:"🏰", desc:"A fairy-tale city of medieval towers, baroque palaces and cobblestone lanes along the Vltava.",        best:"May–Sep",  lang:"Czech",          curr:"CZK Kč",   color:"#d08020", tagBg:"#3d2206", tagCol:"#e8a840"},
+  {id:7,  name:"Japan",      x:808, y:108, type:"culture", emoji:"⛩️", desc:"Ancient temples, neon-lit cities, Mount Fuji, cherry blossoms and world-renowned food culture.",      best:"Mar–May",  lang:"Japanese",       curr:"Yen ¥",    color:"#d03050", tagBg:"#4a0a14", tagCol:"#f08090"},
+  {id:8,  name:"Edinburgh",  x:422, y:107, type:"heritage",emoji:"🏯", desc:"Scotland's dramatic capital — Edinburgh Castle, Arthur's Seat, whisky trails and the Royal Mile.",    best:"Jun–Aug",  lang:"English",        curr:"GBP £",    color:"#7040d0", tagBg:"#1e0a4a", tagCol:"#a080f0"},
+  {id:9,  name:"France",     x:462, y:126, type:"culture", emoji:"🥐", desc:"Beyond Paris — lavender fields of Provence, Loire Valley châteaux, Côte d'Azur and fine wine.",       best:"May–Sep",  lang:"French",         curr:"Euro €",   color:"#2080d0", tagBg:"#0c2d5e", tagCol:"#7ab8f5"},
+  {id:10, name:"Greece",     x:505, y:140, type:"nature",  emoji:"🏺", desc:"Ancient ruins, crystal Aegean waters, olive groves, island-hopping and legendary Mediterranean food.", best:"Apr–Jun",  lang:"Greek",          curr:"Euro €",   color:"#20a070", tagBg:"#083d2a", tagCol:"#5acca0"},
+  {id:11, name:"Himalayas",  x:632, y:155, type:"nature",  emoji:"🏔️", desc:"Home to Everest — trekking trails, ancient monasteries and the most breathtaking vistas on earth.",   best:"Oct–Nov",  lang:"Nepali/Tibetan", curr:"NPR/INR",  color:"#20a070", tagBg:"#083d2a", tagCol:"#5acca0"},
+];
+
+const ROUTES = [
+  {id:"r1", name:"West Europe Classic", stops:[1,4,3],   color:"#2080d0", desc:"Paris → Barcelona → Rome"},
+  {id:"r2", name:"Nature & Alps",       stops:[1,2,3],   color:"#20a070", desc:"Paris → Alps → Rome"},
+  {id:"r3", name:"East Gems",           stops:[6,1,3],   color:"#d08020", desc:"Prague → Paris → Rome"},
+  {id:"r4", name:"Aegean Dream",        stops:[4,3,5],   color:"#a040a0", desc:"Barcelona → Rome → Santorini"},
+  {id:"r5", name:"Himalaya & Asia",     stops:[11,7],    color:"#20a070", desc:"Himalayas → Japan"},
+  {id:"r6", name:"British & France",    stops:[8,9,1],   color:"#7040d0", desc:"Edinburgh → France → Paris"},
+  {id:"r7", name:"Greek Islands",       stops:[10,5,3],  color:"#20a0c0", desc:"Greece → Santorini → Rome"},
+];
+
+// ── BUILD SIDEBAR
+const destListEl  = document.getElementById('dest-list');
+const routeListEl = document.getElementById('route-list');
+
+D.forEach(d => {
+  const el = document.createElement('div');
+  el.className = 'dest-card'; el.id = 'dc'+d.id;
+  el.innerHTML = `<div class="dest-dot" style="background:${d.color}"></div><div><div class="dest-name">${d.name}</div><div class="dest-type">${d.type}</div></div>`;
+  el.onclick = () => showPopup(d);
+  destListEl.appendChild(el);
+});
+
+let activeRoute = null;
+ROUTES.forEach(r => {
+  const el = document.createElement('button');
+  el.className = 'route-btn'; el.id = 'rb'+r.id;
+  el.innerHTML = `${r.name}<div class="route-stops">${r.desc}</div>`;
+  el.onclick = () => toggleRoute(r, el);
+  routeListEl.appendChild(el);
+});
+
+// ── BUILD SVG MARKERS
+const markersG = document.getElementById('markers');
+const routeLinesG = document.getElementById('route-lines');
+
+D.forEach(d => {
+  const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.setAttribute('class','pin');
+  g.style.cursor = 'pointer';
+
+  // Pulse ring
+  const pulse = document.createElementNS('http://www.w3.org/2000/svg','circle');
+  pulse.setAttribute('cx', d.x); pulse.setAttribute('cy', d.y); pulse.setAttribute('r','10');
+  pulse.setAttribute('fill', d.color); pulse.setAttribute('opacity','0.2');
+
+  // Main dot
+  const circ = document.createElementNS('http://www.w3.org/2000/svg','circle');
+  circ.setAttribute('cx', d.x); circ.setAttribute('cy', d.y); circ.setAttribute('r','6');
+  circ.setAttribute('fill', d.color); circ.setAttribute('stroke','#fff'); circ.setAttribute('stroke-width','1.5');
+
+  // Label
+  const txt = document.createElementNS('http://www.w3.org/2000/svg','text');
+  txt.setAttribute('x', d.x + 9); txt.setAttribute('y', d.y + 4);
+  txt.setAttribute('fill','#90b8d8'); txt.setAttribute('font-size','9');
+  txt.setAttribute('font-family','Segoe UI,sans-serif'); txt.setAttribute('font-weight','600');
+  txt.textContent = d.name;
+
+  g.appendChild(pulse); g.appendChild(circ); g.appendChild(txt);
+  g.onclick = () => showPopup(d);
+
+  // Hover
+  g.onmouseenter = () => { circ.setAttribute('r','8'); circ.setAttribute('stroke-width','2'); };
+  g.onmouseleave = () => { circ.setAttribute('r','6'); circ.setAttribute('stroke-width','1.5'); };
+
+  markersG.appendChild(g);
+  d._circ = circ;
+});
+
+// ── ROUTES
+function toggleRoute(r, btnEl) {
+  // clear old
+  while(routeLinesG.firstChild) routeLinesG.removeChild(routeLinesG.firstChild);
+  document.querySelectorAll('.route-btn').forEach(b => b.classList.remove('active'));
+
+  if (activeRoute === r.id) { activeRoute = null; return; }
+  activeRoute = r.id;
+  btnEl.classList.add('active');
+
+  for (let i = 0; i < r.stops.length - 1; i++) {
+    const a = D.find(x => x.id === r.stops[i]);
+    const b = D.find(x => x.id === r.stops[i+1]);
+    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1', a.x); line.setAttribute('y1', a.y);
+    line.setAttribute('x2', b.x); line.setAttribute('y2', b.y);
+    line.setAttribute('stroke', r.color); line.setAttribute('stroke-width','2');
+    line.setAttribute('stroke-dasharray','6,4'); line.setAttribute('opacity','0.85');
+    routeLinesG.appendChild(line);
+  }
+
+  // numbered markers
+  r.stops.forEach((sid, i) => {
+    const d = D.find(x => x.id === sid);
+    const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('cx', d.x); circle.setAttribute('cy', d.y); circle.setAttribute('r','9');
+    circle.setAttribute('fill', r.color); circle.setAttribute('stroke','#fff'); circle.setAttribute('stroke-width','1.5');
+    const num = document.createElementNS('http://www.w3.org/2000/svg','text');
+    num.setAttribute('x', d.x); num.setAttribute('y', d.y + 3.5);
+    num.setAttribute('text-anchor','middle'); num.setAttribute('fill','#fff');
+    num.setAttribute('font-size','8'); num.setAttribute('font-weight','700');
+    num.setAttribute('font-family','Segoe UI,sans-serif');
+    num.textContent = i + 1;
+    routeLinesG.appendChild(circle);
+    routeLinesG.appendChild(num);
+  });
+
+  document.getElementById('info-bar').textContent = r.name + ' — ' + r.desc;
+}
+
+// ── POPUP
+const popup = document.getElementById('popup');
+const mapWrap = document.getElementById('map-wrap');
+
+function showPopup(d) {
+  document.getElementById('p-emoji').textContent = d.emoji;
+  document.getElementById('p-tag').textContent = d.type;
+  document.getElementById('p-tag').style.background = d.tagBg;
+  document.getElementById('p-tag').style.color = d.tagCol;
+  document.getElementById('p-title').textContent = d.name;
+  document.getElementById('p-desc').textContent = d.desc;
+  document.getElementById('p-best').textContent = d.best;
+  document.getElementById('p-lang').textContent = d.lang;
+  document.getElementById('p-curr').textContent = d.curr;
+  document.getElementById('p-ask').onclick = () => openChat(d.name);
+  document.querySelectorAll('.dest-card').forEach(c => c.classList.remove('active'));
+  const dc = document.getElementById('dc'+d.id); if (dc) dc.classList.add('active');
+  document.getElementById('info-bar').textContent = d.name + ' — ' + d.desc;
+
+  // Position popup near the pin but keep it inside viewport
+  const svgEl = document.getElementById('world-svg');
+  const svgRect = svgEl.getBoundingClientRect();
+  const wrapRect = mapWrap.getBoundingClientRect();
+  const scaleX = svgRect.width / 1000;
+  const scaleY = svgRect.height / 500;
+  let px = (d.x * scaleX) + (svgRect.left - wrapRect.left) + 12;
+  let py = (d.y * scaleY) + (svgRect.top - wrapRect.top) - 20;
+  const pw = 270, ph = 260;
+  if (px + pw > wrapRect.width - 10) px = px - pw - 24;
+  if (py + ph > wrapRect.height - 10) py = wrapRect.height - ph - 10;
+  if (py < 5) py = 5;
+  popup.style.left = px + 'px';
+  popup.style.top  = py + 'px';
+  popup.classList.add('show');
+}
+
+document.getElementById('popup-x').onclick = closePopup;
+document.getElementById('p-close').onclick  = closePopup;
+function closePopup() {
+  popup.classList.remove('show');
+  document.querySelectorAll('.dest-card').forEach(c => c.classList.remove('active'));
+}
+
+// ── CHATBOT KNOWLEDGE
+const KB = {
+  japan:     {tips:"Visit during cherry blossom (Mar–Apr) or autumn foliage (Oct–Nov). Carry cash — many places don't accept cards. Buy a JR Pass for bullet trains.", places:"Tokyo (Shibuya, Asakusa), Kyoto (Fushimi Inari), Osaka, Mount Fuji, Hiroshima, Nara deer park.", food:"Sushi, ramen, tempura, okonomiyaki, takoyaki and matcha desserts.", budget:"Around ¥8,000–15,000/day. Book Kyoto accommodation months in advance."},
+  edinburgh: {tips:"Summer (Jun–Aug) has the famous Fringe Festival. Weather changes fast — wear layers. Arthur's Seat hike and national museums are free!", places:"Edinburgh Castle, Royal Mile, Arthur's Seat, Holyrood Palace, Grassmarket, Calton Hill.", food:"Haggis, cranachan, Scottish salmon, deep-fried Mars bar and world-class whisky.", budget:"£60–100/day. Hostels from £20/night. Most national museums are free."},
+  france:    {tips:"Explore beyond Paris — Provence, Loire Valley, the Riviera. French people appreciate a simple 'Bonjour'. Book restaurants in advance.", places:"Paris, Nice, Lyon, Bordeaux, Mont Saint-Michel, Versailles and lavender fields of Provence.", food:"Croissants, baguettes, coq au vin, bouillabaisse, crêpes and world-class wine.", budget:"Paris €80–150/day. Countryside €50–90/day. TGV trains are fast and scenic."},
+  greece:    {tips:"Visit Apr–Jun or Sep–Oct to avoid summer crowds. Island-hop by ferry — fun and affordable. Negotiate taxi fares upfront.", places:"Athens (Acropolis), Santorini, Mykonos, Crete, Rhodes, Meteora monasteries, Delphi ruins.", food:"Moussaka, souvlaki, tzatziki, spanakopita, grilled octopus, baklava and real feta salad.", budget:"Athens €50–80/day. Islands €70–120/day. Ferry passes save money for hopping."},
+  himalayas: {tips:"Best trekking: Oct–Nov or Mar–May. Acclimatize slowly above 3,500m. Hire a licensed local guide for safety.", places:"Everest Base Camp, Annapurna Circuit, Pokhara, Langtang Valley, Lhasa, Darjeeling, Paro (Bhutan).", food:"Dal bhat (unlimited refills!), momo dumplings, thukpa soup, butter tea and yak cheese.", budget:"Nepal $30–60/day all-in. Bhutan requires minimum $200/day. India side ₹2,000–5,000/day."},
+  paris:     {tips:"Buy a Paris Museum Pass. Use the Metro. Visit the Eiffel Tower at night for the light show. Book restaurants a week ahead.", places:"Eiffel Tower, Louvre, Notre-Dame, Montmartre, Champs-Élysées, Versailles, Seine cruises.", food:"Croissants, steak-frites, escargot, French onion soup and macarons from Ladurée.", budget:"€80–150/day. Pre-book major attractions to skip the long queues."},
+  rome:      {tips:"Buy combo tickets: Colosseum + Roman Forum + Palatine Hill. Walk a few blocks from sights for authentic cheaper food.", places:"Colosseum, Vatican Museums, Sistine Chapel, Trevi Fountain, Pantheon, Piazza Navona.", food:"Cacio e pepe, supplì, gelato, pizza al taglio, carbonara, tiramisù and espresso.", budget:"€70–120/day. Pre-book Vatican — queues are 2–3 hours without a reservation."},
+  barcelona: {tips:"Beware pickpockets on Las Ramblas. Restaurants serve dinner late at 9–10 PM. Buy Sagrada Família tickets online in advance.", places:"Sagrada Família, Park Güell, Casa Batlló, Gothic Quarter, Barceloneta beach, Camp Nou.", food:"Tapas (patatas bravas, pan con tomate), paella, pintxos, crema catalana and fresh seafood.", budget:"€70–120/day. Walk one street back from Las Ramblas for better value food."},
+  santorini: {tips:"Oia village has the famous sunset — arrive 2 hours early for a good spot. Hire an ATV to explore. Book caldera-view rooms months ahead.", places:"Oia, Fira, Red Beach, Ancient Akrotiri ruins, Santo Wines winery, Amoudi Bay.", food:"Fresh grilled fish, tomatokeftedes, fava dip, local Assyrtiko wine and gyros.", budget:"€100–200/day peak season. Much cheaper off-season Oct–Apr with fewer crowds."},
+  prague:    {tips:"Prague is very walkable. Use Bolt app instead of airport taxis. Czech koruna used — not Euros. One of Europe's most affordable cities!", places:"Prague Castle, Charles Bridge, Old Town Square, Josefov Jewish Quarter, Petřín Hill.", food:"Svíčková, goulash, trdelník chimney cake and Czech pilsner — best beer culture in Europe.", budget:"Very affordable — €40–70/day. Beer costs under €1 in local pubs!"},
+  alps:      {tips:"Switzerland is expensive — budget well. Swiss Travel Pass covers unlimited trains. Glacier Express and Bernina Express are must-rides.", places:"Interlaken, Zermatt (Matterhorn), Lucerne, Jungfraujoch, Grindelwald, Lake Geneva.", food:"Swiss fondue, raclette, rösti, Swiss chocolate and fine alpine cheese.", budget:"€150–250/day. One of Europe's priciest but the scenery is absolutely spectacular."},
+};
+
+function botReply(input) {
+  const t = input.toLowerCase();
+  const has = (...w) => w.some(k => t.includes(k));
+  let key = null;
+  if (has('japan','tokyo','kyoto','osaka','fuji'))           key='japan';
+  else if (has('edinburgh','scotland','scottish'))           key='edinburgh';
+  else if (has('france','french','provence','loire'))        key='france';
+  else if (has('greece','greek','athens','acropolis'))       key='greece';
+  else if (has('himalaya','everest','nepal','trek'))         key='himalayas';
+  else if (has('paris','eiffel','louvre','montmartre'))      key='paris';
+  else if (has('rome','colosseum','vatican','italy'))        key='rome';
+  else if (has('barcelona','gaudi','sagrada'))               key='barcelona';
+  else if (has('santorini','oia','caldera','cyclades'))      key='santorini';
+  else if (has('prague','czech','charles bridge'))           key='prague';
+  else if (has('swiss','alps','switzerland','zermatt'))      key='alps';
+
+  if (key) {
+    const d = KB[key];
+    if (has('food','eat','cuisine','dish','taste','try'))         return '🍽️ ' + d.food;
+    if (has('budget','cost','price','money','cheap','afford'))    return '💰 ' + d.budget;
+    if (has('place','visit','see','attraction','do','go','must')) return '📍 ' + d.places;
+    return '💡 ' + d.tips;
+  }
+  if (has('best time','when to','season','month'))
+    return '🗓️ Japan (Mar–May), France & Greece (May–Jun), Himalayas (Oct–Nov), Edinburgh (Jun–Aug), Paris & Barcelona (Apr–Jun), Santorini (Jun–Sep). Ask about a specific destination!';
+  if (has('budget','cost','expensive','cheap'))
+    return '💰 Cheapest: Prague & Nepal (~€40–60/day). Mid: Greece, Rome, Japan (€70–120). Pricier: Paris, Barcelona (€80–130). Most expensive: Switzerland (€150–250).';
+  if (has('safe','safety','solo','danger','crime'))
+    return '🔒 All destinations here are safe for tourists. Prague, Japan and Edinburgh are among the safest globally. Take normal precautions in crowded areas like Barcelona and Rome.';
+  if (has('visa','passport','entry','permit'))
+    return '📋 EU countries (France, Greece, Italy, Spain) share the Schengen visa. UK needs a separate visa. Japan offers visa-on-arrival for many nationalities. Nepal issues tourist visas on arrival.';
+  if (has('route','itinerary','plan','trip','days','week'))
+    return '🗺️ Try: West Europe Classic (Paris→Barcelona→Rome, 10–14 days), Aegean Dream (Barcelona→Rome→Santorini), Greek Islands, or Himalaya & Asia (Nepal→Japan). Click routes in the left panel!';
+  if (has('hi','hello','hey','hola','namaste'))
+    return '👋 Hey! I\'m your Travel Assistant. I know all about Japan, Edinburgh, France, Greece, Himalayas, Paris, Rome, Barcelona, Santorini, Prague and Swiss Alps. What would you like to explore?';
+  if (has('thank','thanks','great','awesome','cool','perfect'))
+    return '😊 You\'re welcome! Have an amazing trip! Ask me anything else about your journey.';
+  return '✈️ I can help with Japan, Edinburgh, France, Greece, Himalayas, Paris, Rome, Barcelona, Santorini, Prague or Swiss Alps. Try asking: best time, food, budget, places to visit, or safety tips!';
+}
+
+// ── CHAT UI
+const chatFab  = document.getElementById('chat-fab');
+const chatWin  = document.getElementById('chat-win');
+const chatMsgs = document.getElementById('chat-msgs');
+const chatInp  = document.getElementById('chat-inp');
+const quickWrap= document.getElementById('quick-wrap');
+let chatOpen = false;
+
+const QUICK_Q = ["Best time for Japan?","Budget for Himalayas?","Food in Greece?","Places in Edinburgh?"];
+
+chatFab.onclick = () => {
+  chatOpen = !chatOpen;
+  chatWin.classList.toggle('open', chatOpen);
+  if (chatOpen && chatMsgs.children.length === 0) {
+    addMsg('bot', "👋 Hi! I'm your Travel Assistant. Ask me about Japan, Edinburgh, France, Greece, Himalayas or any destination on the map!");
+    QUICK_Q.forEach(q => {
+      const b = document.createElement('button');
+      b.className = 'qbtn'; b.textContent = q;
+      b.onclick = () => send(q);
+      quickWrap.appendChild(b);
+    });
+  }
+};
+
+function addMsg(role, text) {
+  const now = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  const d = document.createElement('div');
+  d.className = 'msg ' + role;
+  d.innerHTML = `<div class="msg-b">${text}</div><div class="msg-t">${now}</div>`;
+  chatMsgs.appendChild(d);
+  chatMsgs.scrollTop = chatMsgs.scrollHeight;
+}
+function addTyping() {
+  const d = document.createElement('div');
+  d.className = 'msg bot typing'; d.id = 'typing';
+  d.innerHTML = `<div class="msg-b"><div class="td"></div><div class="td"></div><div class="td"></div></div>`;
+  chatMsgs.appendChild(d); chatMsgs.scrollTop = chatMsgs.scrollHeight;
+}
+function send(text) {
+  const msg = text || chatInp.value.trim();
+  if (!msg) return;
+  addMsg('user', msg);
+  chatInp.value = '';
+  quickWrap.innerHTML = '';
+  addTyping();
+  setTimeout(() => {
+    const t = document.getElementById('typing'); if (t) t.remove();
+    addMsg('bot', botReply(msg));
+  }, 600 + Math.random() * 300);
+}
+function openChat(name) {
+  chatOpen = true; chatWin.classList.add('open');
+  if (chatMsgs.children.length === 0)
+    addMsg('bot', "👋 Hi! I'm your Travel Assistant. Ask me anything!");
+  quickWrap.innerHTML = '';
+  setTimeout(() => send('Tell me about ' + name), 250);
+}
+document.getElementById('chat-send').onclick = () => send();
+chatInp.addEventListener('keydown', e => { if (e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();} });
+</script>
+</body>
+</html>
