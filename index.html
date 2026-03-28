@@ -3,26 +3,33 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
-    <title>Travel Explorer Pro | Satellite · Routes · Pins</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <title>Travel Explorer | Find Your Vibe</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
     <style>
         :root {
-            --bg-dark: #050a0f;
-            --sidebar-bg: #0b121a;
-            --accent: #3b82f6;
-            --accent-glow: rgba(59, 130, 246, 0.4);
-            --text-primary: #f8fafc;
+            --bg-dark: #020617;
+            --sidebar-bg: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.6);
+            --accent: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.3);
+            --text-primary: #f1f5f9;
             --text-secondary: #94a3b8;
-            --border: #1e293b;
-            --success: #10b981;
-            --warning: #f59e0b;
+            --border: rgba(51, 65, 85, 0.6);
+            --success: #22c55e;
+            --warning: #fbbf24;
+            --danger: #f43f5e;
+            --glass: rgba(15, 23, 42, 0.8);
+            --vibe-nature: #4ade80;
+            --vibe-city: #f472b6;
+            --vibe-culture: #fb923c;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Plus Jakarta Sans', sans-serif;
             background: var(--bg-dark);
             color: var(--text-primary);
             height: 100vh;
@@ -32,334 +39,251 @@
         }
 
         header {
-            height: 60px;
+            height: 70px;
             padding: 0 24px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: var(--sidebar-bg);
+            background: var(--glass);
+            backdrop-filter: blur(16px);
             border-bottom: 1px solid var(--border);
             z-index: 1000;
         }
 
-        .main-container {
+        .logo-area { display: flex; align-items: center; gap: 12px; }
+        .logo-icon {
+            width: 40px; height: 40px;
+            background: linear-gradient(135deg, #0ea5e9, #6366f1);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 8px 16px -4px rgba(14, 165, 233, 0.5);
+        }
+        .logo-icon svg { width: 22px; height: 22px; stroke: white; fill: none; }
+
+        .view-switcher {
             display: flex;
-            flex: 1;
-            overflow: hidden;
+            background: rgba(255,255,255,0.05);
+            padding: 4px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+        .view-btn {
+            padding: 6px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            color: var(--text-secondary);
+            background: transparent;
+            transition: 0.2s;
+        }
+        .view-btn.active {
+            background: var(--accent);
+            color: #000;
         }
 
-        /* --- SIDEBAR (enhanced) --- */
+        .main-layout { display: flex; flex: 1; overflow: hidden; }
+
         .sidebar {
-            width: 340px;
+            width: 380px;
             background: var(--sidebar-bg);
             border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
-            z-index: 10;
             overflow-y: auto;
         }
 
-        .sidebar-section {
-            border-bottom: 1px solid var(--border);
-            padding: 16px 0;
-        }
-
+        .section-box { padding: 24px 16px; border-bottom: 1px solid var(--border); }
         .section-title {
-            font-size: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-secondary);
-            padding: 0 18px;
-            margin-bottom: 12px;
+            font-size: 13px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1px; color: var(--text-secondary);
+            margin-bottom: 16px; padding-left: 8px;
+            display: flex; align-items: center; gap: 8px;
         }
+        .section-title svg { width: 16px; height: 16px; }
 
-        .place-list, .pins-list {
-            padding: 0 12px 12px 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .place-card, .pin-card {
-            background: #161f2b;
+        .vibe-card {
+            background: var(--card-bg);
             border: 1px solid var(--border);
-            border-radius: 14px;
-            overflow: hidden;
+            border-radius: 20px;
+            padding: 16px;
+            margin-bottom: 12px;
             cursor: pointer;
-            transition: all 0.2s ease;
-            animation: fadeIn 0.3s ease-out;
-        }
-
-        .place-card:hover, .pin-card:hover { transform: translateY(-2px); border-color: var(--accent); }
-
-        .place-img-container {
-            width: 100%;
-            height: 130px;
-            background: #0f172a;
+            transition: 0.3s;
             position: relative;
             overflow: hidden;
         }
-
-        .place-img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-            transition: opacity 0.4s;
+        .vibe-card:hover { 
+            border-color: var(--accent); 
+            transform: translateY(-2px);
+            background: rgba(30, 41, 59, 0.9);
         }
 
-        .place-info {
-            padding: 10px 12px;
+        .vibe-question {
+            font-size: 11px; font-weight: 700;
+            color: var(--accent); margin-bottom: 4px;
+            text-transform: uppercase; letter-spacing: 0.5px;
         }
+        .vibe-place { font-size: 16px; font-weight: 800; margin-bottom: 2px; }
+        .vibe-country { font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; }
 
-        .place-info h4 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
-        .place-info .tag {
-            display: inline-block;
-            background: rgba(59, 130, 246, 0.2);
-            color: var(--accent);
-            font-size: 9px;
-            padding: 2px 8px;
-            border-radius: 12px;
-            margin-bottom: 6px;
-        }
-        .btn-pin {
-            background: rgba(245, 158, 11, 0.2);
-            border: none;
-            color: var(--warning);
-            font-size: 11px;
-            padding: 4px 10px;
-            border-radius: 20px;
-            cursor: pointer;
-            margin-top: 8px;
-            font-weight: 600;
-            transition: 0.2s;
-        }
-        .btn-pin:hover { background: var(--warning); color: #0f172a; }
-
-        .pin-card {
-            display: flex;
-            align-items: center;
-            padding: 8px 12px;
-            gap: 10px;
-        }
-        .pin-icon { font-size: 20px; }
-        .pin-details { flex: 1; }
-        .pin-name { font-weight: 600; font-size: 13px; }
-        .remove-pin {
-            background: none;
-            border: none;
-            color: #ef4444;
-            font-size: 16px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        /* Route panel */
-        .route-panel {
-            padding: 12px 18px;
-            background: #0f172a;
-            margin: 8px 12px;
-            border-radius: 20px;
+        .vibe-actions { display: flex; gap: 8px; }
+        .action-btn {
+            background: rgba(255,255,255,0.05);
             border: 1px solid var(--border);
+            color: white; padding: 6px 12px;
+            border-radius: 10px; font-size: 11px;
+            font-weight: 600; cursor: pointer;
+            display: flex; align-items: center; gap: 4px;
         }
-        .route-input {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-bottom: 12px;
-        }
-        .route-input input {
-            background: #050a0f;
-            border: 1px solid var(--border);
-            padding: 10px 12px;
-            border-radius: 40px;
-            color: white;
-            font-size: 13px;
-            outline: none;
-        }
-        .route-actions {
-            display: flex;
-            gap: 8px;
-        }
-        .btn-route, .btn-clear {
-            background: var(--accent);
-            border: none;
-            padding: 8px 12px;
-            border-radius: 30px;
-            font-weight: 600;
-            font-size: 12px;
-            cursor: pointer;
-            color: white;
-            flex: 1;
-        }
-        .btn-clear { background: #334155; }
+        .action-btn:hover { background: var(--accent); color: #000; border-color: var(--accent); }
+        .action-btn.primary { background: var(--accent); color: #000; border: none; }
 
-        /* MAP + CHAT (existing enhancements) */
-        #map-container { flex: 1; position: relative; }
+        #map-area { flex: 1; position: relative; }
         #map { width: 100%; height: 100%; background: #000; }
 
-        .map-layer-toggle {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 1000;
-            background: var(--sidebar-bg);
-            border-radius: 12px;
-            display: flex;
-            gap: 4px;
-            padding: 6px;
-            backdrop-filter: blur(4px);
+        .chat-trigger {
+            position: absolute; bottom: 30px; right: 30px;
+            width: 60px; height: 60px; background: var(--accent);
+            border-radius: 50%; display: flex; align-items: center;
+            justify-content: center; cursor: pointer; z-index: 1000;
+            box-shadow: 0 10px 25px var(--accent-glow);
+            transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        .layer-btn {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            padding: 6px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 600;
-        }
-        .layer-btn.active { background: var(--accent); color: white; }
+        .chat-trigger:hover { transform: scale(1.1); }
+        .chat-trigger svg { width: 28px; height: 28px; stroke: #000; fill: none; }
 
-        /* Chat window */
-        .chat-toggle {
-            position: absolute;
-            bottom: 24px;
-            right: 24px;
-            width: 56px;
-            height: 56px;
-            background: var(--accent);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 0 20px var(--accent-glow);
-            z-index: 1001;
-        }
-        .chat-window {
-            position: absolute;
-            bottom: 100px;
-            right: 24px;
-            width: 380px;
-            height: 540px;
-            background: var(--sidebar-bg);
-            border: 1px solid var(--border);
-            border-radius: 24px;
-            display: flex;
-            flex-direction: column;
+        .chat-bubble {
+            position: absolute; bottom: 105px; right: 30px;
+            width: 380px; height: 500px; background: var(--sidebar-bg);
+            border: 1px solid var(--border); border-radius: 24px;
+            display: none; flex-direction: column; z-index: 1001;
             box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-            transform: translateY(20px);
-            opacity: 0;
-            pointer-events: none;
-            transition: 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1);
-            z-index: 1002;
             overflow: hidden;
         }
-        .chat-window.active { transform: translateY(0); opacity: 1; pointer-events: auto; }
+        .chat-bubble.active { display: flex; }
+
         .chat-header {
-            padding: 16px;
-            background: #0f172a;
+            padding: 20px; background: rgba(15, 23, 42, 0.95);
             border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            gap: 12px;
+            display: flex; align-items: center; gap: 12px;
         }
-        .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
+        .bot-img { width: 36px; height: 36px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+        .bot-img svg { width: 20px; height: 20px; stroke: #000; fill: none; }
+
+        .chat-msgs { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+        .msg { max-width: 85%; padding: 12px 16px; border-radius: 18px; font-size: 14px; line-height: 1.5; }
+        .msg.bot { background: #1e293b; color: white; border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.05); }
+        .msg.user { background: var(--accent); color: #000; align-self: flex-end; border-bottom-right-radius: 4px; font-weight: 600; }
+
+        .quick-chips { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+        .chip { 
+            background: rgba(56, 189, 248, 0.1); border: 1px solid var(--accent);
+            color: var(--accent); padding: 6px 12px; border-radius: 20px;
+            font-size: 11px; cursor: pointer; font-weight: 700;
         }
-        .msg { max-width: 85%; font-size: 13px; line-height: 1.4; }
-        .msg-content { padding: 10px 14px; border-radius: 18px; }
-        .msg.bot .msg-content { background: #1e293b; border-bottom-left-radius: 4px; }
-        .msg.user .msg-content { background: var(--accent); color: white; border-bottom-right-radius: 4px; align-self: flex-end; }
-        .insight-card {
-            margin-top: 8px;
-            background: rgba(0,0,0,0.3);
-            border-radius: 12px;
-            padding: 10px;
-            font-size: 11px;
-        }
-        .chat-input-area {
-            padding: 12px;
-            border-top: 1px solid var(--border);
-            display: flex;
-            gap: 8px;
-        }
-        .chat-input-area input {
-            flex: 1;
-            background: #050a0f;
-            border: 1px solid var(--border);
-            padding: 10px 14px;
-            border-radius: 40px;
-            color: white;
-        }
-        .leaflet-popup-content-wrapper { background: #111827; color: white; border-radius: 12px; }
-        .leaflet-routing-container { background: #0f172a; color: white; }
+        .chip:hover { background: var(--accent); color: #000; }
+
+        .chat-input { padding: 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; background: #0f172a; }
+        .chat-input input { flex: 1; background: #020617; border: 1px solid var(--border); padding: 12px 16px; border-radius: 14px; color: white; outline: none; }
+        .chat-input button { background: var(--accent); border: none; width: 44px; height: 44px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+        .vibe-tag { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 800; margin-bottom: 8px; }
+        .tag-nature { background: rgba(74, 222, 128, 0.1); color: #4ade80; }
+        .tag-city { background: rgba(244, 114, 182, 0.1); color: #f472b6; }
+        .tag-culture { background: rgba(251, 146, 60, 0.1); color: #fb923c; }
+
+        .route-mini { background: #1e293b; padding: 12px; border-radius: 16px; margin-top: 12px; border: 1px solid var(--border); }
+        .route-mini input { width: 100%; background: #020617; border: 1px solid var(--border); margin-bottom: 8px; padding: 8px; border-radius: 8px; color: white; font-size: 12px; }
+        
+        /* Leaflet routing UI hide */
+        .leaflet-routing-container { display: none !important; }
     </style>
 </head>
 <body>
 
 <header>
-    <div style="display:flex; align-items:center; gap:12px;">
-        <div style="width:36px; height:36px; background:var(--accent); border-radius:10px; display:flex; align-items:center; justify-content:center;">🌍</div>
-        <h1 style="font-size:18px">Travel Explorer <span style="font-weight:300; font-size:13px;">| Routes & Pins</span></h1>
+    <div class="logo-area">
+        <div class="logo-icon">
+            <svg viewBox="0 0 24 24" stroke-width="2.5"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
+        </div>
+        <div>
+            <h2 style="font-size:18px; font-weight:800;">Travel Guide</h2>
+            <p style="font-size:10px; color:var(--accent); font-weight:700; text-transform:uppercase;">Exploring Your Vibe</p>
+        </div>
     </div>
-    <span style="font-size: 12px; background: #1e293b; padding: 4px 12px; border-radius: 30px;">✨ AI Guide</span>
+
+    <div class="view-switcher">
+        <button class="view-btn active" id="btn-dark">City Map</button>
+        <button class="view-btn" id="btn-sat">Satellite View</button>
+    </div>
 </header>
 
-<div class="main-container">
+<div class="main-layout">
     <aside class="sidebar">
-        <div class="sidebar-section">
-            <div class="section-title">📔 VISITED JOURNAL</div>
-            <div class="place-list" id="place-list"></div>
+        <div class="section-box">
+            <div class="section-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                Your Travel Vibe
+            </div>
+            <div id="journal-list"></div>
         </div>
 
-        <div class="sidebar-section">
-            <div class="section-title">📍 PINNED PLACES</div>
-            <div id="pins-container" class="pins-list"></div>
+        <div class="section-box">
+            <div class="section-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                Your Collection
+            </div>
+            <div id="pins-list" style="display:flex; flex-direction:column; gap:8px;"></div>
         </div>
 
-        <div class="sidebar-section">
-            <div class="section-title">🗺️ ROUTE PLANNER</div>
-            <div class="route-panel">
-                <div class="route-input">
-                    <input type="text" id="route-start" placeholder="Start location (e.g., Eiffel Tower)" value="Paris, France">
-                    <input type="text" id="route-end" placeholder="Destination (e.g., Louvre Museum)">
-                </div>
-                <div class="route-actions">
-                    <button class="btn-route" id="show-route-btn">✨ Show Route</button>
-                    <button class="btn-clear" id="clear-route-btn">🗑️ Clear</button>
-                </div>
-                <div style="font-size:10px; margin-top:8px; color:#64748b;">💡 Try "route from London to Stonehenge" in chat!</div>
+        <div class="section-box">
+            <div class="section-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Quick Route
+            </div>
+            <div class="route-mini">
+                <input type="text" id="r-start" placeholder="Where are you?">
+                <input type="text" id="r-end" placeholder="Where to?">
+                <button class="action-btn primary" style="width:100%; justify-content:center;" id="btn-go">
+                    Let's Go! <svg style="width:14px;" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                </button>
+                <button class="action-btn" id="btn-clear-route" style="width:100%; margin-top:8px; justify-content:center; display:none;">Clear Route</button>
             </div>
         </div>
     </aside>
 
-    <main id="map-container">
+    <main id="map-area">
         <div id="map"></div>
-        <div class="map-layer-toggle">
-            <button class="layer-btn active" id="btn-sat">🛰️ Satellite</button>
-            <button class="layer-btn" id="btn-dark">🌙 Night Mode</button>
+        
+        <div class="chat-trigger" onclick="toggleChat()">
+            <svg viewBox="0 0 24 24" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         </div>
-        <div class="chat-toggle" onclick="toggleChat()">💬</div>
-        <div class="chat-window" id="chat-window">
+
+        <div class="chat-bubble" id="chat-win">
             <div class="chat-header">
-                <div style="width:34px; height:34px; background:#22c55e; border-radius:50%; display:flex; align-items:center; justify-content:center;">🧭</div>
-                <div><strong>Travel Guru AI</strong><div style="font-size:10px;">🌎 Routes · Pins · Satellite</div></div>
+                <div class="bot-img"><svg viewBox="0 0 24 24" stroke-width="2.5"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path d="M12 6v6l4 2"/></svg></div>
+                <div>
+                    <h3 style="font-size:14px; font-weight:800;">Travel Buddy AI</h3>
+                    <p style="font-size:10px; color:var(--success);">Ask me anything!</p>
+                </div>
             </div>
-            <div class="chat-messages" id="chat-messages">
-                <div class="msg bot"><div class="msg-content">✈️ Ready! Ask me: <br/>📍 "Show me Santorini" <br/>🗺️ "Route from Berlin to Prague" <br/>📌 "Pin this place" after search</div></div>
+            <div class="chat-msgs" id="msgs">
+                <div class="msg bot">
+                    Hey! 👋 Need a ride or just exploring? <br/><br/>
+                    Where should we go today?
+                    <div class="quick-chips">
+                        <div class="chip" onclick="chatAction('Show me Bali')">Tropical Vibes 🌴</div>
+                        <div class="chip" onclick="chatAction('Show me New York')">Concrete Jungle 🏙️</div>
+                        <div class="chip" onclick="chatAction('Show me Rome')">Ancient History 🏛️</div>
+                        <div class="chip" onclick="luckyDip()">Feeling Lucky? ✨</div>
+                    </div>
+                </div>
             </div>
-            <div class="chat-input-area">
-                <input type="text" id="chat-input" placeholder="Explore or ask for route..." onkeypress="handleKey(event)">
-                <button onclick="sendMessage()">Send</button>
+            <div class="chat-input">
+                <input type="text" id="msg-input" placeholder="Find a place..." onkeypress="checkKey(event)">
+                <button onclick="sendMsg()"><svg style="width:18px; stroke: #000; fill:none;" viewBox="0 0 24 24" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polyline points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
             </div>
         </div>
     </main>
@@ -369,363 +293,268 @@
 <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 
 <script>
-    // --- GLOBALS ---
     let map;
-    let layers = {};
-    let visitedCount = 0;
-    let currentSearchMarker = null;
-    let activeRoutingControl = null;
+    let routing;
+    let searchMarker;
+    let visited = [];
+    let pins = [];
     
-    // Pins management
-    let pinnedPlaces = []; // { id, name, lat, lng, country, insights }
-    let pinMarkers = [];
-    
-    // Helper: generate unique ID
-    function uid() { return Date.now() + '-' + Math.random().toString(36).substr(2, 8); }
-    
-    // --- MAP INIT ---
-    function initMap() {
-        map = L.map('map', { zoomControl: false }).setView([34.5, -98], 3);
-        layers.sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            attribution: 'Esri &mdash; Satellite'
-        });
-        layers.dark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: 'CartoDB'
-        });
-        layers.sat.addTo(map);
-        L.control.zoom({ position: 'bottomleft' }).addTo(map);
-        
-        // custom pin icon style (distinct marker)
-        map.on('click', () => { });
+    let darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png');
+    let satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
+
+    // --- PERSONALITY ENGINE ---
+    const responseVariations = {
+        nature: [
+            "Ah, **{name}**! 🌲 Nature is calling. This place is pure soul-therapy.",
+            "Great pick! **{name}** is perfect if you want to swap screen-time for green-time. 🏔️",
+            "**{name}**? Excellent. The air just feels different there. Ready for some fresh vibes? ✨"
+        ],
+        city: [
+            "**{name}**! 🏙️ The city lights are waiting. Hope you're ready for some energy!",
+            "Ooh, **{name}**. Modern, fast, and iconic. A true city explorer's dream. 🏮",
+            "Solid choice. **{name}** has a rhythm like no other place. Up for the hustle? 🚕"
+        ],
+        culture: [
+            "**{name}** is steeped in history. 🏛️ Every corner tells a story here.",
+            "A cultural masterpiece! **{name}** will definitely leave you inspired. 🎨",
+            "Beautiful choice. **{name}** is where tradition meets the modern world. 🏛️"
+        ],
+        generic: [
+            "**{name}**? Never a bad idea! Let's take a look. 📍",
+            "Added **{name}** to your travel diary. It looks amazing! ✨"
+        ]
+    };
+
+    const vibes = {
+        nature: { tag: "Nature Lover", class: "tag-nature", icon: "🌲" },
+        city: { tag: "City Explorer", class: "tag-city", icon: "🏙️" },
+        culture: { tag: "Culture Hunter", class: "tag-culture", icon: "🏛️" }
+    };
+
+    function getVibe(place) {
+        const h = place.length % 3;
+        if(h === 0) return { key: 'nature', ...vibes.nature };
+        if(h === 1) return { key: 'city', ...vibes.city };
+        return { key: 'culture', ...vibes.culture };
     }
-    
-    function setLayer(type) {
-        if (type === 'sat') {
-            map.removeLayer(layers.dark);
-            layers.sat.addTo(map);
+
+    function generateBotResponse(placeName) {
+        const vibe = getVibe(placeName);
+        const list = responseVariations[vibe.key] || responseVariations.generic;
+        const template = list[Math.floor(Math.random() * list.length)];
+        return template.replace("{name}", placeName);
+    }
+
+    // --- CORE ---
+    function initMap() {
+        map = L.map('map', { zoomControl: false, layers: [darkLayer] }).setView([20, 0], 2);
+        loadData();
+    }
+
+    function setViewMode(mode) {
+        if(mode === 'sat') {
+            map.removeLayer(darkLayer);
+            satelliteLayer.addTo(map);
             document.getElementById('btn-sat').classList.add('active');
             document.getElementById('btn-dark').classList.remove('active');
         } else {
-            map.removeLayer(layers.sat);
-            layers.dark.addTo(map);
+            map.removeLayer(satelliteLayer);
+            darkLayer.addTo(map);
             document.getElementById('btn-dark').classList.add('active');
             document.getElementById('btn-sat').classList.remove('active');
         }
     }
-    
-    // --- IMAGE FIX: better unsplash & robust fallback ---
-    function getTravelImageUrl(placeName, country) {
-        const keywords = encodeURIComponent(`${placeName} ${country} travel landmark scenic`);
-        // using unsplash random + sig to force variety, but fallback guaranteed
-        return `https://source.unsplash.com/400x300/?${keywords}&sig=${Math.floor(Math.random() * 10000)}`;
+
+    function loadData() {
+        const v = localStorage.getItem('vibe_visited');
+        const p = localStorage.getItem('vibe_pins');
+        if(v) visited = JSON.parse(v);
+        if(p) pins = JSON.parse(p);
+        renderAll();
     }
-    
-    // --- Generate insights (dynamic)
-    function generateInsights(place, nameOverride = null) {
-        const name = nameOverride || (place.display_name ? place.display_name.split(',')[0] : "Destination");
-        const country = place.address?.country || "Amazing Region";
-        const specialties = [
-            "Breathtaking landscapes & natural wonders", "Rich cultural heritage & iconic landmarks",
-            "Vibrant nightlife & gastronomy", "Adventure & outdoor activities", "Pristine beaches & coastal views"
-        ];
-        const times = ["Spring (Mar-May)", "Autumn (Sep-Nov)", "Summer (Jun-Aug)", "Winter (Dec-Feb)"];
-        return {
-            summary: `${name} in ${country} offers unforgettable experiences and authentic vibes.`,
-            specialty: specialties[Math.floor(Math.random() * specialties.length)],
-            time: times[Math.floor(Math.random() * times.length)]
-        };
+
+    function saveData() {
+        localStorage.setItem('vibe_visited', JSON.stringify(visited));
+        localStorage.setItem('vibe_pins', JSON.stringify(pins));
     }
-    
-    // --- SIDEBAR: add visited place (with pin button)
-    function addToSidebar(place, insights) {
-        const list = document.getElementById('place-list');
-        const name = place.display_name.split(',')[0];
-        const country = place.address?.country || "Mystic Land";
-        const lat = parseFloat(place.lat);
-        const lon = parseFloat(place.lon);
-        const imgUrl = getTravelImageUrl(name, country);
-        
-        const card = document.createElement('div');
-        card.className = 'place-card';
-        card.innerHTML = `
-            <div class="place-img-container">
-                <img src="${imgUrl}" class="place-img" alt="${name}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=400&q=80'; this.style.opacity=1" onload="this.style.opacity=1">
-            </div>
-            <div class="place-info">
-                <div class="tag">✨ DESTINATION</div>
-                <h4>${escapeHtml(name)}</h4>
-                <p>${escapeHtml(country)}</p>
-                <div style="font-size:10px; color:var(--accent); margin:4px 0">📅 ${insights.time}</div>
-                <button class="btn-pin" data-lat="${lat}" data-lon="${lon}" data-name="${escapeHtml(name)}" data-country="${escapeHtml(country)}">📌 Pin this place</button>
-            </div>
-        `;
-        card.querySelector('.btn-pin').addEventListener('click', (e) => {
-            e.stopPropagation();
-            const btn = e.currentTarget;
-            const pinLat = parseFloat(btn.dataset.lat);
-            const pinLon = parseFloat(btn.dataset.lon);
-            const pinName = btn.dataset.name;
-            const pinCountry = btn.dataset.country;
-            addPin({ lat: pinLat, lon: pinLon, name: pinName, country: pinCountry, insights });
-        });
-        card.onclick = () => map.flyTo([lat, lon], 13, { duration: 1.5 });
-        list.prepend(card);
-    }
-    
-    // --- PIN FEATURE ---
-    function renderPinsUI() {
-        const container = document.getElementById('pins-container');
-        if (!container) return;
-        container.innerHTML = '';
-        if (pinnedPlaces.length === 0) {
-            container.innerHTML = '<div style="padding:12px; text-align:center; font-size:12px; color:#64748b;">🔖 No pins yet. Click 📌 on visited places</div>';
-            return;
-        }
-        pinnedPlaces.forEach(pin => {
-            const pinDiv = document.createElement('div');
-            pinDiv.className = 'pin-card';
-            pinDiv.innerHTML = `
-                <div class="pin-icon">📍</div>
-                <div class="pin-details">
-                    <div class="pin-name">${escapeHtml(pin.name)}</div>
-                    <div style="font-size:10px; color:#94a3b8;">${escapeHtml(pin.country)}</div>
+
+    function renderAll() {
+        const jl = document.getElementById('journal-list');
+        jl.innerHTML = '';
+        visited.slice(0, 5).forEach(v => {
+            const vibe = getVibe(v.name);
+            const card = document.createElement('div');
+            card.className = 'vibe-card';
+            card.innerHTML = `
+                <div class="vibe-tag ${vibe.class}">${vibe.icon} ${vibe.tag}</div>
+                <div class="vibe-place">${v.name}</div>
+                <div class="vibe-country">${v.country}</div>
+                <div class="vibe-actions">
+                    <button class="action-btn primary" onclick="event.stopPropagation(); flyTo('${v.lat}','${v.lon}')">Visit</button>
+                    <button class="action-btn" onclick="event.stopPropagation(); addPin('${v.name}','${v.country}','${v.lat}','${v.lon}')">Save</button>
                 </div>
-                <button class="remove-pin" data-id="${pin.id}">✖</button>
             `;
-            pinDiv.querySelector('.remove-pin').addEventListener('click', (e) => {
-                e.stopPropagation();
-                removePinById(pin.id);
-            });
-            pinDiv.addEventListener('click', () => {
-                map.flyTo([pin.lat, pin.lon], 12);
-                L.popup().setLatLng([pin.lat, pin.lon]).setContent(`📍 <b>${pin.name}</b> (pinned)`).openOn(map);
-            });
-            container.appendChild(pinDiv);
+            card.onclick = () => flyTo(v.lat, v.lon);
+            jl.appendChild(card);
+        });
+
+        const pl = document.getElementById('pins-list');
+        pl.innerHTML = '';
+        pins.forEach(p => {
+            const div = document.createElement('div');
+            div.style = 'background:rgba(255,255,255,0.03); padding:10px; border-radius:12px; display:flex; justify-content:space-between; align-items:center; border:1px solid var(--border); cursor:pointer;';
+            div.innerHTML = `
+                <div onclick="flyTo('${p.lat}', '${p.lon}')">
+                    <div style="font-size:13px; font-weight:700;">${p.name}</div>
+                    <div style="font-size:10px; color:var(--text-secondary)">${p.country}</div>
+                </div>
+                <button onclick="removePin('${p.id}')" style="background:none; border:none; color:var(--danger); cursor:pointer;">&times;</button>
+            `;
+            pl.appendChild(div);
         });
     }
-    
-    function syncPinMarkers() {
-        // remove all existing pin markers from map
-        pinMarkers.forEach(m => map.removeLayer(m));
-        pinMarkers = [];
-        pinnedPlaces.forEach(pin => {
-            const marker = L.marker([pin.lat, pin.lon], { title: `Pinned: ${pin.name}` }).addTo(map);
-            marker.bindPopup(`<b>📌 ${pin.name}</b><br>${pin.country}<br><button id="unpin-${pin.id}" style="background:#ef4444; border:none; color:white; border-radius:20px; padding:4px 10px; margin-top:5px; cursor:pointer;">Remove Pin</button>`);
-            marker.on('popupopen', () => {
-                const btn = document.getElementById(`unpin-${pin.id}`);
-                if (btn) btn.onclick = () => removePinById(pin.id);
-            });
-            pinMarkers.push(marker);
-        });
-    }
-    
-    function addPin(placeObj) {
-        if (!placeObj.lat || !placeObj.lon) return;
-        const exists = pinnedPlaces.some(p => p.name === placeObj.name && Math.abs(p.lat - placeObj.lat) < 0.001);
-        if (exists) {
-            addChatMessageBot("📍 This place is already pinned!", null);
-            return;
-        }
-        const newPin = {
-            id: uid(),
-            name: placeObj.name,
-            lat: placeObj.lat,
-            lon: placeObj.lon,
-            country: placeObj.country || "Unknown",
-            insights: placeObj.insights || { summary: "Pinned spot", specialty: "Local gem", time: "All year" }
-        };
-        pinnedPlaces.push(newPin);
-        renderPinsUI();
-        syncPinMarkers();
-        addChatMessageBot(`📌 Pinned: ${newPin.name}. Check your pins list!`, null);
-    }
-    
-    function removePinById(id) {
-        pinnedPlaces = pinnedPlaces.filter(p => p.id !== id);
-        renderPinsUI();
-        syncPinMarkers();
-        addChatMessageBot("🗑️ Pin removed.", null);
-    }
-    
-    // --- ROUTE LOGIC (geocode + leaflet routing)---
-    async function geocodeAddress(query) {
-        if (!query.trim()) return null;
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+
+    async function search(query, silent = false) {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=1`);
         const data = await res.json();
-        if (data && data.length) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), name: data[0].display_name };
+        if(data[0]) {
+            const p = data[0];
+            const name = p.display_name.split(',')[0];
+            const country = p.address.country || "Earth";
+            
+            if(!silent) {
+                flyTo(p.lat, p.lon);
+                if(searchMarker) map.removeLayer(searchMarker);
+                searchMarker = L.marker([p.lat, p.lon]).addTo(map).bindPopup(`<b>${name}</b>`).openPopup();
+                addMsgBot(generateBotResponse(name));
+            }
+            
+            if(!visited.some(v => v.name === name)) {
+                visited.unshift({ name, country, lat: p.lat, lon: p.lon });
+                saveData();
+                renderAll();
+            }
+            return p;
+        }
         return null;
     }
-    
-    async function buildRoute(startText, endText) {
-        if (activeRoutingControl) map.removeControl(activeRoutingControl);
-        addChatMessageBot(`🔍 Finding route from "${startText}" to "${endText}"...`, null);
-        const startPoint = await geocodeAddress(startText);
-        const endPoint = await geocodeAddress(endText);
-        if (!startPoint || !endPoint) {
-            addChatMessageBot("❌ Could not locate start or destination. Try more specific names.", null);
+
+    async function buildRoute() {
+        const startQuery = document.getElementById('r-start').value;
+        const endQuery = document.getElementById('r-end').value;
+        
+        if(!startQuery || !endQuery) {
+            addMsgBot("Please fill in both fields to plan a trip! 🚗");
             return;
         }
-        // fly to show both bounds
-        const bounds = L.latLngBounds([startPoint.lat, startPoint.lng], [endPoint.lat, endPoint.lng]);
-        map.fitBounds(bounds, { padding: [50,50] });
-        
-        activeRoutingControl = L.Routing.control({
+
+        addMsgBot(`Calculating the best route from **${startQuery}** to **${endQuery}**... 🗺️`);
+
+        const startPlace = await search(startQuery, true);
+        const endPlace = await search(endQuery, true);
+
+        if(!startPlace || !endPlace) {
+            addMsgBot("Sorry, I couldn't find one of those locations. Check the spelling? 🕵️");
+            return;
+        }
+
+        if(routing) map.removeControl(routing);
+
+        routing = L.Routing.control({
             waypoints: [
-                L.latLng(startPoint.lat, startPoint.lng),
-                L.latLng(endPoint.lat, endPoint.lng)
+                L.latLng(startPlace.lat, startPlace.lon),
+                L.latLng(endPlace.lat, endPlace.lon)
             ],
-            routeWhileDragging: false,
-            showAlternatives: false,
-            lineOptions: { styles: [{ color: '#3b82f6', weight: 5, opacity: 0.8 }] },
-            addWaypoints: false,
-            fitSelectedRoutes: false
+            lineOptions: {
+                styles: [{ color: '#38bdf8', weight: 6, opacity: 0.8 }]
+            },
+            router: L.Routing.osrmv1({
+                serviceUrl: 'https://router.project-osrm.org/route/v1'
+            }),
+            createMarker: function(i, wp) {
+                return L.marker(wp.latLng).bindPopup(i === 0 ? "Start" : "Destination");
+            }
         }).addTo(map);
+
+        // Hide clear route button
+        document.getElementById('btn-clear-route').style.display = 'block';
+
+        // Fit map to route
+        const bounds = L.latLngBounds([
+            [startPlace.lat, startPlace.lon],
+            [endPlace.lat, endPlace.lon]
+        ]);
+        map.flyToBounds(bounds, { padding: [50, 50] });
         
-        addChatMessageBot(`🚗 Route ready: ${startText} → ${endText}. Route line on map.`, null);
+        addMsgBot("Route mapped! Enjoy the journey! 🚀");
     }
-    
+
     function clearRoute() {
-        if (activeRoutingControl) {
-            map.removeControl(activeRoutingControl);
-            activeRoutingControl = null;
-            addChatMessageBot("🗺️ Route cleared.", null);
-        } else {
-            addChatMessageBot("No active route to clear.", null);
-        }
+        if(routing) map.removeControl(routing);
+        routing = null;
+        document.getElementById('btn-clear-route').style.display = 'none';
+        addMsgBot("Route cleared. Where next?");
     }
-    
-    // --- CHAT BOT CORE (enhanced with route detection & pin support)---
-    function addChatMessageBot(text, insights) {
-        const container = document.getElementById('chat-messages');
-        const msgDiv = document.createElement('div');
-        msgDiv.className = 'msg bot';
-        let html = `<div class="msg-content">${text}</div>`;
-        if (insights) {
-            html += `
-            <div class="insight-card">
-                <div><strong>✨ ${insights.summary}</strong></div>
-                <div style="margin-top:5px;">🏆 ${insights.specialty}<br>📅 Best: ${insights.time}</div>
-            </div>`;
-        }
-        msgDiv.innerHTML = html;
-        container.appendChild(msgDiv);
-        container.scrollTop = container.scrollHeight;
-    }
-    
-    function addChatMessageUser(text) {
-        const container = document.getElementById('chat-messages');
-        const msgDiv = document.createElement('div');
-        msgDiv.className = 'msg user';
-        msgDiv.innerHTML = `<div class="msg-content">${escapeHtml(text)}</div>`;
-        container.appendChild(msgDiv);
-        container.scrollTop = container.scrollHeight;
-    }
-    
-    async function processRequest(text) {
-        const lower = text.toLowerCase();
-        // --- ROUTE detection ---
-        if (lower.includes('route from') && lower.includes(' to ')) {
-            const match = text.match(/route from (.+?) to (.+)/i);
-            if (match) {
-                const start = match[1].trim();
-                const end = match[2].trim();
-                await buildRoute(start, end);
-                return;
-            }
-        }
-        // --- PIN command: "pin this place" but we need last searched context? store last location
-        if (lower.includes('pin') && lower.includes('last place') || (lower === 'pin this place' && window.lastSearchedPlace)) {
-            if (window.lastSearchedPlace) {
-                const p = window.lastSearchedPlace;
-                addPin({ lat: p.lat, lon: p.lon, name: p.name, country: p.country, insights: p.insights });
-            } else {
-                addChatMessageBot("No recent place found. Search a location first like 'Show me Bali'", null);
-            }
-            return;
-        }
+
+    // --- UI INTERACTION ---
+    function toggleChat() { document.getElementById('chat-win').classList.toggle('active'); }
+    function checkKey(e) { if(e.key === 'Enter') sendMsg(); }
+
+    function sendMsg() {
+        const input = document.getElementById('msg-input');
+        const val = input.value.trim();
+        if(!val) return;
         
-        // --- NORMAL SEARCH ---
-        const locationQuery = text.replace(/(find|take me to|show me|where is|go to|explore)/gi, "").trim();
-        if (locationQuery.length < 2) {
-            addChatMessageBot("🌎 Tell me a destination or ask 'route from Paris to Rome'", null);
-            return;
-        }
-        try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationQuery)}&addressdetails=1&limit=1`);
-            const data = await res.json();
-            if (data && data.length > 0) {
-                const place = data[0];
-                const lat = parseFloat(place.lat);
-                const lon = parseFloat(place.lon);
-                const name = place.display_name.split(',')[0];
-                const country = place.address?.country || "Unknown";
-                const insights = generateInsights(place, name);
-                
-                // store last place for pin
-                window.lastSearchedPlace = { lat, lon, name, country, insights };
-                
-                map.flyTo([lat, lon], 13, { duration: 2 });
-                if (currentSearchMarker) map.removeLayer(currentSearchMarker);
-                currentSearchMarker = L.marker([lat, lon]).addTo(map);
-                currentSearchMarker.bindPopup(`<b>${name}</b><br>${insights.specialty}<br><button id="quickPinBtn" style="background:#f59e0b; border:none; border-radius:20px; padding:4px 10px; margin-top:5px;">📌 Pin</button>`).openPopup();
-                setTimeout(() => {
-                    const pinBtn = document.getElementById('quickPinBtn');
-                    if (pinBtn) pinBtn.onclick = () => addPin({ lat, lon, name, country, insights });
-                }, 100);
-                
-                addChatMessageBot(`📍 Arrived at ${name}!`, insights);
-                addToSidebar(place, insights);
-                visitedCount++;
-                document.getElementById('counter')?.remove();
-                const counterSpan = document.querySelector('#counter') || (()=>{let sp=document.createElement('span'); sp.id='counter'; document.querySelector('.sidebar-header')?.appendChild(sp); return sp;})();
-                counterSpan.innerText = visitedCount;
-                counterSpan.style.color = 'var(--accent)';
-            } else {
-                addChatMessageBot("🌿 Couldn't find that place. Try a well-known landmark or city.", null);
-            }
-        } catch (e) {
-            addChatMessageBot("Network error. Check connection & retry.", null);
-        }
-    }
-    
-    function sendMessage() {
-        const input = document.getElementById('chat-input');
-        const txt = input.value.trim();
-        if (!txt) return;
-        addChatMessageUser(txt);
+        const m = document.getElementById('msgs');
+        const d = document.createElement('div');
+        d.className = 'msg user';
+        d.innerText = val;
+        m.appendChild(d);
+        m.scrollTop = m.scrollHeight;
+        
         input.value = '';
-        processRequest(txt);
+        search(val);
     }
-    
-    function handleKey(e) { if (e.key === 'Enter') sendMessage(); }
-    function toggleChat() { document.getElementById('chat-window').classList.toggle('active'); }
-    
-    function escapeHtml(str) { return str.replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
-    
-    // --- EVENT LISTENERS & UI ROUTE ---
+
+    function addMsgBot(text) {
+        const m = document.getElementById('msgs');
+        const d = document.createElement('div');
+        d.className = 'msg bot';
+        d.innerHTML = text;
+        m.appendChild(d);
+        m.scrollTop = m.scrollHeight;
+    }
+
+    function chatAction(query) {
+        const m = document.getElementById('msgs');
+        const d = document.createElement('div');
+        d.className = 'msg user';
+        d.innerText = query;
+        m.appendChild(d);
+        search(query);
+    }
+
+    function luckyDip() {
+        const spots = ["Santorini", "Kyoto", "Machu Picchu", "Iceland", "Dubai"];
+        const pick = spots[Math.floor(Math.random() * spots.length)];
+        chatAction(`Take me to ${pick}`);
+    }
+
+    function flyTo(lat, lon) { map.flyTo([lat, lon], 12); }
+    function addPin(name, country, lat, lon) {
+        if(pins.some(p => p.name === name)) return;
+        pins.push({ id: Date.now(), name, country, lat, lon });
+        saveData(); renderAll();
+        addMsgBot(`Saved **${name}** for later! 🔖`);
+    }
+    function removePin(id) { pins = pins.filter(p => p.id != id); saveData(); renderAll(); }
+
     window.onload = () => {
         initMap();
-        window.setLayer = setLayer;
-        document.getElementById('btn-sat').onclick = () => setLayer('sat');
-        document.getElementById('btn-dark').onclick = () => setLayer('dark');
-        document.getElementById('show-route-btn').onclick = async () => {
-            const start = document.getElementById('route-start').value;
-            const end = document.getElementById('route-end').value;
-            if (start && end) await buildRoute(start, end);
-            else addChatMessageBot("Fill both start and destination fields", null);
-        };
-        document.getElementById('clear-route-btn').onclick = () => clearRoute();
-        // initial empty pins
-        renderPinsUI();
-        // set visited counter element
-        const headerSpan = document.querySelector('.sidebar-header');
-        if (!document.getElementById('counter')) {
-            const span = document.createElement('span');
-            span.id = 'counter';
-            span.style.color = 'var(--accent)';
-            headerSpan?.appendChild(span);
-        }
-        document.getElementById('counter').innerText = "0";
+        document.getElementById('btn-dark').onclick = () => setViewMode('dark');
+        document.getElementById('btn-sat').onclick = () => setViewMode('sat');
+        document.getElementById('btn-go').onclick = buildRoute;
+        document.getElementById('btn-clear-route').onclick = clearRoute;
     };
 </script>
 </body>
